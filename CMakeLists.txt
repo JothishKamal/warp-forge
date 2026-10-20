@@ -14,10 +14,8 @@ include(cmake/Warnings.cmake)
 # ---------------------------------------------------------------------------
 # Core compiler library: everything except the two executables' main().
 # ---------------------------------------------------------------------------
-add_library(warpforge_core STATIC
-  src/frontend/source.cpp
-  src/frontend/diagnostics.cpp
-)
+file(GLOB_RECURSE WARPFORGE_CORE_SOURCES CONFIGURE_DEPENDS src/*.cpp)
+add_library(warpforge_core STATIC ${WARPFORGE_CORE_SOURCES})
 target_include_directories(warpforge_core PUBLIC src)
 target_compile_definitions(warpforge_core PUBLIC WARPFORGE_VERSION="${PROJECT_VERSION}")
 warpforge_set_warnings(warpforge_core)

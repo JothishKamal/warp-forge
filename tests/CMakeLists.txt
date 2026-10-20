@@ -6,9 +6,8 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-add_executable(warpforge_tests
-  unit/test_diagnostics.cpp
-)
+file(GLOB WARPFORGE_TEST_SOURCES CONFIGURE_DEPENDS unit/*.cpp)
+add_executable(warpforge_tests ${WARPFORGE_TEST_SOURCES})
 target_link_libraries(warpforge_tests PRIVATE warpforge_core GTest::gtest_main)
 warpforge_set_warnings(warpforge_tests)
 
