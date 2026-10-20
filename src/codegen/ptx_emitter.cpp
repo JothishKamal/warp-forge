@@ -308,7 +308,15 @@ private:
     }
     case Op::Neg: {
       std::string a = regOperand(in.operand(0));
-      inst(isFloat ? "neg.f32" : "neg.s32", reg(&in) + ", " + a);
+      if (isFloat) {
+        // Not neg.f32: PTX leaves its result for NaN inputs unspecified, and
+        // in practice the hardware returns the canonical NaN unchanged while
+        // ptxas's constant folder flips the sign. XOR on the sign bit (.b32
+        // works on .f32 registers) is exactly the IR's semantics.
+        inst("xor.b32", reg(&in) + ", " + a + ", 0x80000000");
+      } else {
+        inst("neg.s32", reg(&in) + ", " + a);
+      }
       break;
     }
     case Op::Lt: {

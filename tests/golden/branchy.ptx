@@ -34,7 +34,7 @@
 	ld.global.f32 	%f1, [%rd6];
 	setp.lt.f32 	%p2, %f1, 0f00000000;
 	@!%p2 bra 	$L__BB0_3;
-	neg.f32 	%f2, %f1;
+	xor.b32 	%f2, %f1, 0x80000000;
 	mov.f32 	%f3, %f2;
 	bra.uni 	$L__BB0_7;
 $L__BB0_3:

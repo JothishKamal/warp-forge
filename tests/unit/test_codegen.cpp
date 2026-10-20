@@ -163,6 +163,15 @@ TEST(PTX, NegativeIntegerOps) {
     EXPECT_TRUE(has(ptx, line)) << line << "\n" << ptx;
 }
 
+TEST(PTX, FloatNegationIsSignBitXor) {
+  // PTX leaves neg.f32 of a NaN unspecified (the RTX 3060 returns 0x7FFFFFFF
+  // at run time, while ptxas's folder flips the sign), so float negation is
+  // lowered to an exact sign-bit flip instead.
+  std::string ptx = ptxFor("kernel k(float* o) { int i = global_id(); o[i] = -o[i]; }");
+  EXPECT_TRUE(has(ptx, "xor.b32 \t%f2, %f1, 0x80000000;")) << ptx;
+  EXPECT_FALSE(has(ptx, "neg.f32")) << ptx;
+}
+
 TEST(PTX, Deterministic) {
   const char* src = "kernel k(float* o, int n) { int i = global_id(); float x = 1.0;"
                     " if (i < n) { x = 2.0; } else { x = o[i]; } o[i] = x; }";
