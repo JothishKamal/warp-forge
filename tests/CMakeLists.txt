@@ -40,9 +40,17 @@ add_test(NAME cli_dump_ir_no_opt COMMAND warpforge ${PROJECT_SOURCE_DIR}/example
 # ---------------------------------------------------------------------------
 # NVIDIA-toolchain validation (skipped with exit code 77 when unavailable)
 # ---------------------------------------------------------------------------
+find_program(WARPFORGE_PTXAS ptxas
+  HINTS "$ENV{CUDA_PATH}/bin"
+  PATHS "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.3/bin" /usr/local/cuda/bin)
 if(Python3_FOUND)
+  set(ptxas_args "")
+  if(WARPFORGE_PTXAS)
+    set(ptxas_args --ptxas ${WARPFORGE_PTXAS})
+  endif()
   add_test(NAME ptxas_golden
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/run_ptxas.py ${CMAKE_CURRENT_SOURCE_DIR}/golden)
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/run_ptxas.py ${CMAKE_CURRENT_SOURCE_DIR}/golden
+            ${ptxas_args})
   set_tests_properties(ptxas_golden PROPERTIES SKIP_RETURN_CODE 77 LABELS nvidia)
 endif()
 
