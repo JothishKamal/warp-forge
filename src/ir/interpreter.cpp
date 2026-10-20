@@ -137,9 +137,12 @@ private:
         switch (inst.op()) {
         case Op::Phi: break;
         case Op::Add: case Op::Sub: case Op::Mul: case Op::Neg: case Op::Lt: {
-          std::vector<Constant*> ops;
-          for (const Value* v : inst.operands()) ops.push_back(fn_.constant(v->type(), get(v).bits));
-          env_[&inst] = {evaluate(fn_, inst.op(), ops)->bits(), {}};
+          // Raw bits, no IR constants: the interpreter must not mutate the IR.
+          uint32_t a = get(inst.operand(0)).bits;
+          uint32_t b = inst.operands().size() > 1 ? get(inst.operand(1)).bits : 0;
+          uint32_t r = 0;
+          evaluateBits(inst.op(), inst.operand(0)->type(), a, b, r);
+          env_[&inst] = {r, {}};
           break;
         }
         case Op::GlobalId: env_[&inst] = {static_cast<uint32_t>(tid), {}}; break;

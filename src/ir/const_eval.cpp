@@ -48,25 +48,28 @@ uint32_t floatOp(Op op, uint32_t aBits, uint32_t bBits) {
 
 } // namespace
 
-Constant* evaluate(Function& fn, Op op, const std::vector<Constant*>& ops) {
+bool evaluateBits(Op op, Type operandType, uint32_t a, uint32_t b, uint32_t& result) {
   switch (op) {
-  case Op::Add: case Op::Sub: case Op::Mul: case Op::Neg: {
-    size_t arity = op == Op::Neg ? 1 : 2;
-    if (ops.size() != arity) return nullptr;
-    Type t = ops[0]->type();
-    uint32_t b = arity == 2 ? ops[1]->bits() : 0;
-    if (t == Type::I32) return fn.constant(Type::I32, intOp(op, ops[0]->bits(), b));
-    if (t == Type::F32) return fn.constF32Bits(floatOp(op, ops[0]->bits(), b));
-    return nullptr;
+  case Op::Add: case Op::Sub: case Op::Mul: case Op::Neg:
+    if (operandType == Type::I32) result = intOp(op, a, b);
+    else if (operandType == Type::F32) result = floatOp(op, a, b);
+    else return false;
+    return true;
+  case Op::Lt:
+    if (operandType == Type::I32) result = std::bit_cast<int32_t>(a) < std::bit_cast<int32_t>(b);
+    else if (operandType == Type::F32) result = std::bit_cast<float>(a) < std::bit_cast<float>(b); // false on NaN
+    else return false;
+    return true;
+  default: return false;
   }
-  case Op::Lt: {
-    if (ops.size() != 2) return nullptr;
-    if (ops[0]->type() == Type::I32) return fn.constI1(ops[0]->i32() < ops[1]->i32());
-    if (ops[0]->type() == Type::F32) return fn.constI1(ops[0]->f32() < ops[1]->f32()); // false on NaN
-    return nullptr;
-  }
-  default: return nullptr;
-  }
+}
+
+Constant* evaluate(Function& fn, Op op, const std::vector<Constant*>& ops) {
+  size_t arity = op == Op::Neg ? 1 : 2;
+  if (ops.size() != arity) return nullptr;
+  uint32_t result = 0;
+  if (!evaluateBits(op, ops[0]->type(), ops[0]->bits(), arity == 2 ? ops[1]->bits() : 0, result)) return nullptr;
+  return fn.constant(op == Op::Lt ? Type::I1 : ops[0]->type(), result);
 }
 
 } // namespace wf::ir

@@ -215,6 +215,7 @@ public:
   Constant* constF32Bits(uint32_t bits);
   Constant* constI1(bool v);
   Constant* constant(Type type, uint32_t bits);
+  size_t numConstants() const { return constants_.size(); }
 
 private:
   std::vector<std::unique_ptr<Argument>> args_;

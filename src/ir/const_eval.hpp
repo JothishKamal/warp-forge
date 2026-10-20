@@ -19,4 +19,9 @@ namespace wf::ir {
 // Shared by const-fold and SCCP so the two passes can never disagree.
 Constant* evaluate(Function& fn, Op op, const std::vector<Constant*>& operands);
 
+// The same computation on raw bit patterns, for callers that must not create
+// IR constants (the interpreter). `b` is ignored for neg. The result of lt is
+// 0 or 1. Returns false for ops that aren't foldable.
+bool evaluateBits(Op op, Type operandType, uint32_t a, uint32_t b, uint32_t& result);
+
 } // namespace wf::ir

@@ -141,3 +141,16 @@ TEST(Interp, ArgumentCountMismatch) {
   EXPECT_FALSE(r.ok);
   EXPECT_EQ(r.error, "kernel @k expects 2 arguments, got 1");
 }
+
+TEST(Interp, DoesNotMutateTheIR) {
+  // Runtime values must not be interned as IR constants: that grew the
+  // function's constant pool by one entry per distinct value computed.
+  auto m = compileToIR("kernel k(float* a, float* o) { int i = global_id(); o[i] = a[i] * 3.0 + 1.0; }");
+  Function& fn = *m->functions[0];
+  size_t before = fn.numConstants();
+  std::vector<float> a(512), o(512);
+  for (size_t i = 0; i < a.size(); ++i) a[i] = static_cast<float>(i) * 0.37f;
+  ASSERT_TRUE(interpret(fn, {&a, &o}, 512).ok);
+  EXPECT_EQ(fn.numConstants(), before);
+  EXPECT_EQ(o[10], 10 * 0.37f * 3.0f + 1.0f);
+}
