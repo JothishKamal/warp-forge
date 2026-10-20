@@ -183,6 +183,11 @@ private:
 class Function {
 public:
   explicit Function(std::string fnName) : name(std::move(fnName)) {}
+  // Drops every operand reference before destroying anything, so no
+  // instruction deregisters from a value that is already gone.
+  ~Function();
+  Function(const Function&) = delete;
+  Function& operator=(const Function&) = delete;
 
   std::string name;
 

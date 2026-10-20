@@ -186,6 +186,11 @@ std::vector<Instruction*> BasicBlock::phis() const {
 
 // --------------------------------------------------------------- Function
 
+Function::~Function() {
+  for (auto& bb : blocks_)
+    for (auto& inst : bb->insts()) inst->dropAllReferences();
+}
+
 Argument* Function::addArg(Type type, std::string argName) {
   args_.push_back(std::make_unique<Argument>(type, static_cast<unsigned>(args_.size()),
                                              std::move(argName)));
