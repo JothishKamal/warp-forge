@@ -9,7 +9,13 @@ FetchContent_MakeAvailable(googletest)
 file(GLOB WARPFORGE_TEST_SOURCES CONFIGURE_DEPENDS unit/*.cpp)
 add_executable(warpforge_tests ${WARPFORGE_TEST_SOURCES})
 target_link_libraries(warpforge_tests PRIVATE warpforge_core GTest::gtest_main)
+target_include_directories(warpforge_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 warpforge_set_warnings(warpforge_tests)
+
+# Writes random programs for the GPU fuzz (same generator as the unit test).
+add_executable(wf-gen tools/wf_gen.cpp)
+target_include_directories(wf-gen PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+warpforge_set_warnings(wf-gen)
 
 include(GoogleTest)
 gtest_discover_tests(warpforge_tests DISCOVERY_MODE PRE_TEST)
@@ -66,6 +72,14 @@ foreach(example ${WARPFORGE_EXAMPLES})
     set_tests_properties(gpu_${kernel}_${variant} PROPERTIES SKIP_RETURN_CODE 77 LABELS gpu)
   endforeach()
 endforeach()
+
+# Random programs through ptxas and the GPU: the hardware is the oracle.
+if(Python3_FOUND)
+  add_test(NAME gpu_fuzz
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/run_gpu_fuzz.py
+            $<TARGET_FILE:warpforge> $<TARGET_FILE:wf-run> $<TARGET_FILE:wf-gen> ${ptxas_args})
+  set_tests_properties(gpu_fuzz PROPERTIES SKIP_RETURN_CODE 77 LABELS "gpu;nvidia")
+endif()
 
 # Hand-written IR in, expected IR out: each pass tested in isolation.
 if(Python3_FOUND)
