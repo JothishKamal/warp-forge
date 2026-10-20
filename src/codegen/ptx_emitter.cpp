@@ -205,7 +205,7 @@ private:
 
   void emitBlock(size_t i) {
     const BasicBlock* bb = layout_[i];
-    if (i != 0) body_ << label(bb) << ":\n";
+    if (labelled_.count(bb)) body_ << label(bb) << ":\n";
     for (const auto& ip : bb->insts()) {
       const Instruction& in = *ip;
       if (in.op() == Op::Phi) continue;
@@ -272,8 +272,15 @@ private:
       static const char* kInt[] = {"add.s32", "sub.s32", "mul.lo.s32"};
       static const char* kFloat[] = {"add.rn.f32", "sub.rn.f32", "mul.rn.f32"};
       size_t k = in.op() == Op::Add ? 0 : in.op() == Op::Sub ? 1 : 2;
-      std::string a = regOperand(in.operand(0));
-      std::string b = operand(in.operand(1));
+      const Value* lhs = in.operand(0);
+      const Value* rhs = in.operand(1);
+      // add and mul are commutative (exactly, even in IEEE-754), so put a
+      // constant second where it can be an immediate instead of a mov.
+      if (in.op() != Op::Sub && lhs->valueKind() == Value::Kind::Constant &&
+          rhs->valueKind() != Value::Kind::Constant)
+        std::swap(lhs, rhs);
+      std::string a = regOperand(lhs);
+      std::string b = operand(rhs);
       inst(isFloat ? kFloat[k] : kInt[k], reg(&in) + ", " + a + ", " + b);
       break;
     }
