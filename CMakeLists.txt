@@ -11,6 +11,12 @@ option(WARPFORGE_BUILD_TESTS "Build the test suite" ON)
 
 include(cmake/Warnings.cmake)
 
+# MinGW: link the C++ runtime statically so the executables don't pick up a
+# different libstdc++-6.dll from PATH (Git for Windows ships an older one).
+if(MINGW)
+  add_link_options(-static)
+endif()
+
 # ---------------------------------------------------------------------------
 # Core compiler library: everything except the two executables' main().
 # ---------------------------------------------------------------------------
