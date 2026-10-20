@@ -17,7 +17,7 @@ bit-for-bit against a CPU reference.
 | **SSA construction** | Braun et al. 2013 (*Simple and Efficient Construction of SSA Form*): phis placed on the fly, trivial phis removed. |
 | **Passes** | Constant folding, **SCCP** (Wegman–Zadeck), mark-sweep DCE, CFG simplification. Pass manager with `--print-after-all` and the verifier between passes. |
 | **Backend** | Critical-edge splitting and parallel-copy sequentialization (lost-copy and swap problems), typed virtual registers, `.rn` float ops, nvcc-style labels. |
-| **Validation** | 151 tests: unit, golden files, diagnostics, O0-vs-O1 differential tests on a reference interpreter, `ptxas`, and GPU runs through the CUDA Driver API. |
+| **Validation** | 161 CTest tests: unit, golden files, diagnostics, hand-written IR pass tests, O0-vs-O1 differential tests on a reference interpreter (examples + 500 random programs), `ptxas`, and GPU runs through the CUDA Driver API. |
 
 ## Example
 
@@ -127,7 +127,7 @@ Python 3 for the golden-file suites. A GPU and the CUDA Toolkit are optional (se
 ```sh
 cmake --preset mingw-gcc          # or: cmake -B build -G Ninja
 cmake --build build/mingw-gcc
-ctest --test-dir build/mingw-gcc  # 151 tests; GPU/ptxas tests skip if unavailable
+ctest --test-dir build/mingw-gcc  # 161 tests; GPU/ptxas tests skip if unavailable
 ```
 
 ```sh
