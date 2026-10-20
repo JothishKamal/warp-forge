@@ -169,7 +169,7 @@ message such as `'while' is not supported in WarpForge`. Full grammar and semant
 | Golden files | Tokens, AST, IR at -O0/-O1, and PTX at -O0/-O1 for every example are byte-stable and deterministic | ✅ |
 | Diagnostics suite | 27 files of invalid programs, each with exact `line:col` and message | ✅ |
 | Differential O0 vs O1 | Optimized and unoptimized IR give bit-identical memory on the reference interpreter | ✅ |
-| `ptxas -arch=sm_86` | Every golden PTX file assembles with NVIDIA's standalone assembler | see [docs/validation.md](docs/validation.md) |
+| `ptxas -arch=sm_86` | Every golden PTX file assembles with NVIDIA's standalone assembler (CUDA 13.3) | ✅ 12/12 |
 | GPU execution | Every example at -O0 and -O1 is JIT-compiled by the driver, run on an RTX 3060, and matches the CPU reference **bit-for-bit** | ✅ 12/12 |
 
 The GPU path uses no CUDA Toolkit. `wf-run` loads `nvcuda.dll` at run time and hands the PTX to the driver's
