@@ -1,0 +1,6 @@
+# Local reference material (PRD, job descriptions) - not part of the repo
+*.pdf
+
+# Build output
+/build/
+/out/
