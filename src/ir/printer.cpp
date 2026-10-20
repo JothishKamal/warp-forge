@@ -10,8 +10,10 @@
 
 #include "ir/printer.hpp"
 
+#include <algorithm>
 #include <cstdio>
 #include <map>
+#include <set>
 #include <sstream>
 #include <unordered_map>
 
@@ -47,19 +49,35 @@ public:
     }
   }
 
+  // Every printed name is unique: a hint already taken (by an earlier value,
+  // or by another hint that happens to be spelled "x.1") gets the next free
+  // ".N" suffix. Numeric hints are treated as no hint, since numbers are the
+  // printer's own namespace; that keeps parse(print(M)) round-tripping.
   void assign(const Value* v) {
-    if (!v->name.empty()) {
+    std::string name;
+    if (!v->name.empty() && !isNumeric(v->name)) {
       unsigned& n = hintCounts_[v->name];
-      names_[v] = "%" + (n == 0 ? v->name : v->name + "." + std::to_string(n));
-      ++n;
+      do {
+        name = n == 0 ? v->name : v->name + "." + std::to_string(n);
+        ++n;
+      } while (used_.count(name));
     } else {
-      names_[v] = "%" + std::to_string(next_++);
+      do {
+        name = std::to_string(next_++);
+      } while (used_.count(name));
     }
+    used_.insert(name);
+    names_[v] = "%" + name;
   }
 
 private:
+  static bool isNumeric(const std::string& s) {
+    return std::all_of(s.begin(), s.end(), [](char c) { return c >= '0' && c <= '9'; });
+  }
+
   std::unordered_map<const Value*, std::string> names_;
   std::map<std::string, unsigned> hintCounts_;
+  std::set<std::string> used_;
   unsigned next_ = 0;
 };
 

@@ -119,3 +119,30 @@ TEST(IRParser, LeavesSemanticErrorsToTheVerifier) {
   ASSERT_FALSE(errs.empty());
   EXPECT_NE(errs[0].find("does not dominate its use"), std::string::npos) << errs[0];
 }
+
+TEST(IRParser, NumericArgumentNameRoundTrips) {
+  // An argument spelled %0 must not collide with the first unnamed temporary.
+  std::string error;
+  auto m = ir::parseIR("kernel @k(ptr %a, i32 %0) {\nentry:\n  %1 = add.i32 %0, %0\n"
+                       "  %2 = addr %a, %1\n  store.f32 0x00000000, %2\n  ret\n}\n",
+                       error);
+  ASSERT_NE(m, nullptr) << error;
+  std::string once = ir::printModule(*m);
+  EXPECT_EQ(roundTrip(once), once);
+}
+
+TEST(IRParser, CollidingNameHintsStayUnique) {
+  // Hints "x", "x", "x.1": naive numbering would print %x.1 twice.
+  ir::Function fn("k");
+  ir::BasicBlock* bb = fn.createBlock("entry");
+  ir::IRBuilder b(bb);
+  ir::Instruction* a = b.globalId();
+  a->name = "x";
+  ir::Instruction* c = b.add(a, a);
+  c->name = "x";
+  ir::Instruction* d = b.add(c, c);
+  d->name = "x.1";
+  b.ret();
+  std::string text = ir::printFunction(fn);
+  EXPECT_EQ(roundTrip(text), text) << text;
+}
