@@ -36,3 +36,25 @@ add_test(NAME cli_emit_ptx
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 add_test(NAME cli_dump_ir_opt COMMAND warpforge ${PROJECT_SOURCE_DIR}/examples/vector_add.wf --dump-ir --opt)
 add_test(NAME cli_dump_ir_no_opt COMMAND warpforge ${PROJECT_SOURCE_DIR}/examples/vector_add.wf --dump-ir --no-opt)
+
+# ---------------------------------------------------------------------------
+# NVIDIA-toolchain validation (skipped with exit code 77 when unavailable)
+# ---------------------------------------------------------------------------
+if(Python3_FOUND)
+  add_test(NAME ptxas_golden
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/run_ptxas.py ${CMAKE_CURRENT_SOURCE_DIR}/golden)
+  set_tests_properties(ptxas_golden PROPERTIES SKIP_RETURN_CODE 77 LABELS nvidia)
+endif()
+
+# Every example, optimized and unoptimized, runs on the GPU through the
+# driver JIT and must match the CPU reference bit-for-bit.
+file(GLOB WARPFORGE_EXAMPLES CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/examples/*.wf)
+foreach(example ${WARPFORGE_EXAMPLES})
+  get_filename_component(kernel ${example} NAME_WE)
+  foreach(variant ptx O0.ptx)
+    add_test(NAME gpu_${kernel}_${variant}
+      COMMAND wf-run --source ${example} --ptx ${CMAKE_CURRENT_SOURCE_DIR}/golden/${kernel}.${variant}
+              --kernel ${kernel} --check --n 100000)
+    set_tests_properties(gpu_${kernel}_${variant} PROPERTIES SKIP_RETURN_CODE 77 LABELS gpu)
+  endforeach()
+endforeach()
