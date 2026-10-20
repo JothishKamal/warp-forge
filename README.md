@@ -184,10 +184,18 @@ compile-time folds at -O1.
 
 ## Benchmarks
 
-See [docs/benchmarks.md](docs/benchmarks.md) for methodology, environment and raw numbers. The short version:
-`vector_add` is memory-bound, so WarpForge's PTX, its -O0 output and nvcc's PTX all run at essentially the
-same speed. `ptxas` re-optimizes whatever it is given, so the -O1 pipeline shows up in PTX size, not in
-kernel time.
+RTX 3060 Laptop, CUDA 13.3, 200 warmup + 200 timed launches, n = 2²⁴. Every variant passed the
+bit-exact GPU check before it was timed:
+
+| kernel | WarpForge -O0 | WarpForge -O1 | nvcc -O3 | PTX instr (O0 / O1 / nvcc) | SASS instr |
+|---|---|---|---|---|---|
+| `vector_add` | 0.665 ms | 0.665 ms | 0.665 ms | 24 / 24 / 22 | 16 / 16 / 16 |
+| `saxpy_const` | 0.670 ms | 0.676 ms | 0.670 ms | 35 / 23 / 20 | 16 / 16 / 16, **identical SASS** |
+
+WarpForge's PTX runs at nvcc's speed: about 303 GB/s, roughly 90% of the GPU's DRAM peak. `ptxas`
+re-optimizes whatever it receives, so -O1 shrinks the PTX but compiles to the same machine code as -O0.
+For `saxpy_const`, all three variants produce byte-identical SASS. Methodology, environment and the honest
+caveats: [docs/benchmarks.md](docs/benchmarks.md).
 
 ## Documentation
 
