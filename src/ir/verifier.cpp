@@ -2,7 +2,8 @@
 //
 // Checked invariants:
 //   1. Every block ends in exactly one terminator, and phis come first.
-//   2. Branch targets belong to this function; the entry has no predecessors.
+//   2. Branch targets belong to this function; the entry has no predecessors
+//      and therefore no phis.
 //   3. Each opcode has the right number and types of operands.
 //   4. A phi has exactly one incoming value per predecessor, and none from
 //      a block that is not a predecessor.
@@ -43,6 +44,8 @@ public:
     for (const auto& bb : fn_.blocks()) structure(*bb);
     if (fn_.entry() && !fn_.entry()->predecessors().empty())
       fail("entry block '" + fn_.entry()->name + "' has predecessors");
+    if (!fn_.entry()->phis().empty())
+      fail("phi in the entry block '" + fn_.entry()->name + "' (it has no predecessors to take values from)");
     if (!errors_.empty()) return errors_; // CFG is malformed; skip deeper checks
 
     DominatorTree dt(fn_);

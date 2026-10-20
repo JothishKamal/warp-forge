@@ -162,3 +162,13 @@ TEST(Verifier, FunctionWithoutBlocks) {
   Function fn("k");
   EXPECT_TRUE(mentions(verifyFunction(fn), "function has no blocks"));
 }
+
+TEST(Verifier, PhiInEntryBlock) {
+  // The entry has no predecessors, so a phi there could never get a value;
+  // the backend would read a register nothing wrote.
+  Function fn("k");
+  BasicBlock* entry = fn.createBlock("entry");
+  IRBuilder().phi(Type::F32, entry);
+  IRBuilder(entry).ret();
+  EXPECT_TRUE(mentions(verifyFunction(fn), "phi in the entry block 'entry'"));
+}
