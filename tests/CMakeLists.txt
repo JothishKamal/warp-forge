@@ -13,3 +13,4 @@ warpforge_set_warnings(warpforge_tests)
 
 include(GoogleTest)
 gtest_discover_tests(warpforge_tests DISCOVERY_MODE PRE_TEST)
+target_compile_definitions(warpforge_tests PRIVATE WARPFORGE_SOURCE_DIR="${PROJECT_SOURCE_DIR}")

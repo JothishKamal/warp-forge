@@ -1,0 +1,20 @@
+// Floating-point edge cases. At -O1 these are folded at compile time; at -O0
+// the GPU computes them with add.rn/mul.rn. Both must produce identical bits:
+//   out[0]  0.1 + 0.2          -> 0x3E99999A (one rounding)
+//   out[1]  -0.0 + 0.0         -> +0.0       (not -0.0)
+//   out[2]  3.0e38 * 10.0      -> +inf
+//   out[3]  1.0e-45 * 1.0      -> smallest subnormal (no flush-to-zero)
+//   out[4]  -(0.0)             -> -0.0       (neg is not 0 - x)
+//   out[5]  16777216.0 + 1.0   -> 16777216.0 (2^24 + 1 is not representable)
+// Only thread 0 writes, so the kernel is race-free.
+kernel float_consts(float* out) {
+    int i = global_id();
+    if (i < 1) {
+        out[0] = 0.1 + 0.2;
+        out[1] = -0.0 + 0.0;
+        out[2] = 3.0e38 * 10.0;
+        out[3] = 1.0e-45 * 1.0;
+        out[4] = -(0.0);
+        out[5] = 16777216.0 + 1.0;
+    }
+}

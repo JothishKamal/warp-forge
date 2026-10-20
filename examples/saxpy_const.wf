@@ -1,0 +1,18 @@
+// y[i] = scale * x[i] + y[i], written with constant-heavy, partly dead code so
+// the optimizer has something to do:
+//   * `scale` folds to 3.0 (const-fold)
+//   * `lanes` is the constant 256, so `lanes < 0` is false and SCCP deletes
+//     the branch
+//   * `unused` is never stored, so DCE removes it
+kernel saxpy_const(float* x, float* y, int n) {
+    int i = global_id();
+    float scale = 2.0 * 1.5;
+    int unused = i * 4 + 7;
+    int lanes = 32 * 8;
+    if (lanes < 0) {
+        y[i] = 0.0;
+    }
+    if (i < n) {
+        y[i] = scale * x[i] + y[i];
+    }
+}
