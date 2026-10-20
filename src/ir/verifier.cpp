@@ -29,6 +29,10 @@ public:
   explicit Verifier(const Function& fn) : fn_(fn) {}
 
   std::vector<std::string> run() {
+    if (fn_.blocks().empty()) {
+      fail("function has no blocks (every kernel needs at least an entry block ending in 'ret')");
+      return errors_; // every later check assumes an entry block
+    }
     for (const auto& bb : fn_.blocks()) blocks_.insert(bb.get());
     for (const auto& bb : fn_.blocks()) {
       size_t pos = 0;

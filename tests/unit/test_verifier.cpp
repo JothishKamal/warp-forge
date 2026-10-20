@@ -157,3 +157,8 @@ TEST(Verifier, EntryHasPredecessor) {
   IRBuilder(entry).br(entry);
   EXPECT_TRUE(mentions(verifyFunction(fn), "entry block 'entry' has predecessors"));
 }
+
+TEST(Verifier, FunctionWithoutBlocks) {
+  Function fn("k");
+  EXPECT_TRUE(mentions(verifyFunction(fn), "function has no blocks"));
+}
