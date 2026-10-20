@@ -17,6 +17,12 @@ if.then:
   store.f32 0x80000000, %5
   %6 = addr %out, 5
   store.f32 0x4B800000, %6
+  %7 = addr %out, 6
+  store.f32 0x7FFFFFFF, %7
+  %8 = addr %out, 7
+  store.f32 0x7FFFFFFF, %8
+  %9 = addr %out, 8
+  store.f32 0xFFFFFFFF, %9
   br if.end
 
 if.end:

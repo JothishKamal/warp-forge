@@ -13,8 +13,8 @@
 {
 	.reg .pred 	%p<2>;
 	.reg .b32 	%r<5>;
-	.reg .f32 	%f<14>;
-	.reg .b64 	%rd<8>;
+	.reg .f32 	%f<18>;
+	.reg .b64 	%rd<11>;
 
 	ld.param.u64 	%rd1, [float_consts_param_0];
 	cvta.to.global.u64 	%rd2, %rd1;
@@ -24,30 +24,40 @@
 	mad.lo.s32 	%r4, %r1, %r2, %r3;
 	setp.lt.s32 	%p1, %r4, 1;
 	@!%p1 bra 	$L__BB0_2;
-	mov.f32 	%f1, 0f3DCCCCCD;
-	add.rn.f32 	%f2, %f1, 0f3E4CCCCD;
-	st.global.f32 	[%rd2], %f2;
-	mov.f32 	%f3, 0f00000000;
-	neg.f32 	%f4, %f3;
-	add.rn.f32 	%f5, %f4, 0f00000000;
+	mov.f32 	%f1, 0f7F61B1E6;
+	mul.rn.f32 	%f2, %f1, 0f41200000;
+	mov.f32 	%f3, 0f3DCCCCCD;
+	add.rn.f32 	%f4, %f3, 0f3E4CCCCD;
+	st.global.f32 	[%rd2], %f4;
+	mov.f32 	%f5, 0f00000000;
+	xor.b32 	%f6, %f5, 0x80000000;
+	add.rn.f32 	%f7, %f6, 0f00000000;
 	add.s64 	%rd3, %rd2, 4;
-	st.global.f32 	[%rd3], %f5;
-	mov.f32 	%f6, 0f7F61B1E6;
-	mul.rn.f32 	%f7, %f6, 0f41200000;
+	st.global.f32 	[%rd3], %f7;
 	add.s64 	%rd4, %rd2, 8;
-	st.global.f32 	[%rd4], %f7;
+	st.global.f32 	[%rd4], %f2;
 	mov.f32 	%f8, 0f00000001;
 	mul.rn.f32 	%f9, %f8, 0f3F800000;
 	add.s64 	%rd5, %rd2, 12;
 	st.global.f32 	[%rd5], %f9;
 	mov.f32 	%f10, 0f00000000;
-	neg.f32 	%f11, %f10;
+	xor.b32 	%f11, %f10, 0x80000000;
 	add.s64 	%rd6, %rd2, 16;
 	st.global.f32 	[%rd6], %f11;
 	mov.f32 	%f12, 0f4B800000;
 	add.rn.f32 	%f13, %f12, 0f3F800000;
 	add.s64 	%rd7, %rd2, 20;
 	st.global.f32 	[%rd7], %f13;
+	sub.rn.f32 	%f14, %f2, %f2;
+	add.s64 	%rd8, %rd2, 24;
+	st.global.f32 	[%rd8], %f14;
+	mul.rn.f32 	%f15, %f2, 0f00000000;
+	add.s64 	%rd9, %rd2, 28;
+	st.global.f32 	[%rd9], %f15;
+	sub.rn.f32 	%f16, %f2, %f2;
+	xor.b32 	%f17, %f16, 0x80000000;
+	add.s64 	%rd10, %rd2, 32;
+	st.global.f32 	[%rd10], %f17;
 $L__BB0_2:
 	ret;
 

@@ -18,16 +18,32 @@ uint32_t intOp(Op op, uint32_t a, uint32_t b) {
   }
 }
 
-// One binary32 operation. With -ffp-contract=off (cmake/Warnings.cmake) and
-// SSE arithmetic, each of these is a single correctly rounded IEEE operation.
-float floatOp(Op op, float a, float b) {
-  switch (op) {
-  case Op::Add: return a + b;
-  case Op::Sub: return a - b;
-  case Op::Mul: return a * b;
-  case Op::Neg: return -a; // sign-bit flip: -(+0) == -0, unlike 0 - (+0)
-  default: return 0.0f;
+// PTX's canonical NaN. add/sub/mul.rn.f32 flush every NaN result to it (PTX
+// ISA, "Floating-Point Instructions"), whereas x86 SSE produces its "default
+// NaN" 0xFFC00000 and propagates input payloads. Matching the GPU therefore
+// means canonicalizing here, not trusting the host's NaN bits.
+constexpr uint32_t kCanonicalNaN = 0x7FFFFFFFu;
+
+// One binary32 operation, returned as its bit pattern. With -ffp-contract=off
+// (cmake/Warnings.cmake) and SSE arithmetic, add/sub/mul are each a single
+// correctly rounded IEEE operation, the same as add.rn/sub.rn/mul.rn.f32.
+uint32_t floatOp(Op op, uint32_t aBits, uint32_t bBits) {
+  if (op == Op::Neg) {
+    // A pure sign-bit flip, exactly like neg.f32 on sm_86, NaNs included
+    // (measured: neg(0x7FFFFFFF) == 0xFFFFFFFF). Also why -(+0) == -0,
+    // unlike 0 - (+0).
+    return aBits ^ 0x80000000u;
   }
+  float a = std::bit_cast<float>(aBits);
+  float b = std::bit_cast<float>(bBits);
+  float r = 0.0f;
+  switch (op) {
+  case Op::Add: r = a + b; break;
+  case Op::Sub: r = a - b; break;
+  case Op::Mul: r = a * b; break;
+  default: break;
+  }
+  return r != r ? kCanonicalNaN : std::bit_cast<uint32_t>(r); // r != r: NaN
 }
 
 } // namespace
@@ -40,8 +56,7 @@ Constant* evaluate(Function& fn, Op op, const std::vector<Constant*>& ops) {
     Type t = ops[0]->type();
     uint32_t b = arity == 2 ? ops[1]->bits() : 0;
     if (t == Type::I32) return fn.constant(Type::I32, intOp(op, ops[0]->bits(), b));
-    if (t == Type::F32)
-      return fn.constF32(floatOp(op, ops[0]->f32(), std::bit_cast<float>(b)));
+    if (t == Type::F32) return fn.constF32Bits(floatOp(op, ops[0]->bits(), b));
     return nullptr;
   }
   case Op::Lt: {

@@ -6,15 +6,22 @@
 //   out[3]  1.0e-45 * 1.0      -> smallest subnormal (no flush-to-zero)
 //   out[4]  -(0.0)             -> -0.0       (neg is not 0 - x)
 //   out[5]  16777216.0 + 1.0   -> 16777216.0 (2^24 + 1 is not representable)
+//   out[6]  inf - inf          -> NaN, as PTX's canonical 0x7FFFFFFF
+//   out[7]  0.0 * inf          -> NaN, 0x7FFFFFFF
+//   out[8]  -(inf - inf)       -> 0x7FFFFFFF (neg of a NaN is still canonical)
 // Only thread 0 writes, so the kernel is race-free.
 kernel float_consts(float* out) {
     int i = global_id();
     if (i < 1) {
+        float inf = 3.0e38 * 10.0;
         out[0] = 0.1 + 0.2;
         out[1] = -0.0 + 0.0;
-        out[2] = 3.0e38 * 10.0;
+        out[2] = inf;
         out[3] = 1.0e-45 * 1.0;
         out[4] = -(0.0);
         out[5] = 16777216.0 + 1.0;
+        out[6] = inf - inf;
+        out[7] = 0.0 * inf;
+        out[8] = -(inf - inf);
     }
 }

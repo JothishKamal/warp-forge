@@ -37,9 +37,18 @@ TEST(ConstEval, FloatEdgeCases) {
   // neg is a sign flip, not 0 - x: neg(+0) = -0.
   EXPECT_EQ(bitsOf(evaluate(fn, Op::Neg, {fn.constF32(0.0f)})), 0x80000000u);
   EXPECT_EQ(bitsOf(evaluate(fn, Op::Sub, {fn.constF32(0.0f), fn.constF32(0.0f)})), 0x00000000u);
-  // NaN propagates; NaN < x is false.
+  // NaN results are the PTX canonical NaN 0x7FFFFFFF, as on the GPU
+  // (x86 SSE would give its "default NaN" 0xFFC00000). NaN < x is false.
   float nan = std::numeric_limits<float>::quiet_NaN();
-  EXPECT_TRUE(std::isnan(evaluate(fn, Op::Mul, {fn.constF32(nan), fn.constF32(2.0f)})->f32()));
+  float inf = std::numeric_limits<float>::infinity();
+  EXPECT_EQ(bitsOf(evaluate(fn, Op::Mul, {fn.constF32(nan), fn.constF32(2.0f)})), 0x7FFFFFFFu);
+  EXPECT_EQ(bitsOf(evaluate(fn, Op::Sub, {fn.constF32(inf), fn.constF32(inf)})), 0x7FFFFFFFu);
+  EXPECT_EQ(bitsOf(evaluate(fn, Op::Mul, {fn.constF32(0.0f), fn.constF32(inf)})), 0x7FFFFFFFu);
+  EXPECT_EQ(bitsOf(evaluate(fn, Op::Add, {fn.constF32(-inf), fn.constF32(inf)})), 0x7FFFFFFFu);
+  // neg.f32 is a pure sign-bit flip on sm_86, NaN included (measured on an
+  // RTX 3060: neg(0x7FFFFFFF) == 0xFFFFFFFF; see examples/float_consts.wf).
+  EXPECT_EQ(bitsOf(evaluate(fn, Op::Neg, {fn.constF32Bits(0x7FFFFFFFu)})), 0xFFFFFFFFu);
+  EXPECT_EQ(bitsOf(evaluate(fn, Op::Neg, {fn.constF32Bits(0xFFC00000u)})), 0x7FC00000u);
   EXPECT_EQ(evaluate(fn, Op::Lt, {fn.constF32(nan), fn.constF32(1.0f)}), fn.constI1(false));
   EXPECT_EQ(evaluate(fn, Op::Lt, {fn.constF32(1.0f), fn.constF32(nan)}), fn.constI1(false));
   // Subnormals are preserved (no flush-to-zero).

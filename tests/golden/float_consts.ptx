@@ -13,8 +13,8 @@
 {
 	.reg .pred 	%p<2>;
 	.reg .b32 	%r<5>;
-	.reg .f32 	%f<7>;
-	.reg .b64 	%rd<8>;
+	.reg .f32 	%f<10>;
+	.reg .b64 	%rd<11>;
 
 	ld.param.u64 	%rd1, [float_consts_param_0];
 	cvta.to.global.u64 	%rd2, %rd1;
@@ -41,6 +41,15 @@
 	add.s64 	%rd7, %rd2, 20;
 	mov.f32 	%f6, 0f4B800000;
 	st.global.f32 	[%rd7], %f6;
+	add.s64 	%rd8, %rd2, 24;
+	mov.f32 	%f7, 0f7FFFFFFF;
+	st.global.f32 	[%rd8], %f7;
+	add.s64 	%rd9, %rd2, 28;
+	mov.f32 	%f8, 0f7FFFFFFF;
+	st.global.f32 	[%rd9], %f8;
+	add.s64 	%rd10, %rd2, 32;
+	mov.f32 	%f9, 0fFFFFFFFF;
+	st.global.f32 	[%rd10], %f9;
 $L__BB0_2:
 	ret;
 
