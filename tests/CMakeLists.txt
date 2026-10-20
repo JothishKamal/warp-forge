@@ -73,6 +73,18 @@ foreach(example ${WARPFORGE_EXAMPLES})
   endforeach()
 endforeach()
 
+# wf-run rejects bad numeric options with a usage error instead of crashing.
+foreach(case "n;abc;invalid value 'abc' for --n" "n;0;--n must be at least 1"
+             "block;2048;--block must be between 1 and 1024" "runs;-3;invalid value '-3' for --runs")
+  list(GET case 0 opt)
+  list(GET case 1 val)
+  list(GET case 2 expect)
+  add_test(NAME wf_run_rejects_${opt}_${val}
+    COMMAND wf-run --source ${PROJECT_SOURCE_DIR}/examples/vector_add.wf
+            --ptx ${CMAKE_CURRENT_SOURCE_DIR}/golden/vector_add.ptx --kernel vector_add --${opt} ${val})
+  set_tests_properties(wf_run_rejects_${opt}_${val} PROPERTIES PASS_REGULAR_EXPRESSION "${expect}")
+endforeach()
+
 # Random programs through ptxas and the GPU: the hardware is the oracle.
 if(Python3_FOUND)
   add_test(NAME gpu_fuzz

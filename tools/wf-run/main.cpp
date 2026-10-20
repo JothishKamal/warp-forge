@@ -24,6 +24,8 @@
 
 #include <algorithm>
 #include <bit>
+#include <charconv>
+#include <string_view>
 #include <cmath>
 #include <cstdio>
 #include <fstream>
@@ -86,10 +88,20 @@ bool parseArgs(int argc, char** argv, Args& a, std::string& error) {
       else if (arg == "--kernel") a.kernel = v;
       else if (arg == "--csv") a.csv = v;
       else if (arg == "--label") a.label = v;
-      else if (arg == "--n") a.n = static_cast<uint32_t>(std::stoul(v));
-      else if (arg == "--block") a.block = static_cast<uint32_t>(std::stoul(v));
-      else if (arg == "--warmup") a.warmup = std::stoi(v);
-      else a.runs = std::stoi(v);
+      else {
+        // Numeric options: whole string must be a non-negative decimal.
+        uint32_t number = 0;
+        std::string_view text = v;
+        auto [end, ec] = std::from_chars(text.data(), text.data() + text.size(), number);
+        if (text.empty() || ec != std::errc() || end != text.data() + text.size()) {
+          error = "invalid value '" + std::string(text) + "' for " + arg + " (expected a non-negative integer)";
+          return false;
+        }
+        if (arg == "--n") a.n = number;
+        else if (arg == "--block") a.block = number;
+        else if (arg == "--warmup") a.warmup = static_cast<int>(number);
+        else a.runs = static_cast<int>(number);
+      }
     } else {
       error = "unknown option '" + arg + "'";
       return false;
@@ -97,6 +109,18 @@ bool parseArgs(int argc, char** argv, Args& a, std::string& error) {
   }
   if (a.source.empty() || a.ptx.empty() || a.kernel.empty()) {
     error = "--source, --ptx and --kernel are required";
+    return false;
+  }
+  if (a.n < 1 || a.n > (1u << 28)) {
+    error = "--n must be at least 1 and at most 268435456";
+    return false;
+  }
+  if (a.block < 1 || a.block > 1024) { // CUDA's per-block thread limit
+    error = "--block must be between 1 and 1024";
+    return false;
+  }
+  if (a.runs < 1) {
+    error = "--runs must be at least 1";
     return false;
   }
   if (!a.check && !a.bench) a.check = true;
