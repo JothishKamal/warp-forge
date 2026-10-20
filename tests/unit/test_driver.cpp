@@ -101,3 +101,20 @@ TEST(Options, InputIr) {
   EXPECT_FALSE(parse({"t/pass.wfir", "--dump-ast"}, bad, e));
   EXPECT_EQ(e, "--dump-tokens, --dump-ast and --check need WarpForge source, not IR input");
 }
+
+TEST(Options, RejectsUnknownTarget) {
+  Options o;
+  std::string e;
+  EXPECT_FALSE(parse({"x.wf", "--sm=sm_100"}, o, e));
+  EXPECT_EQ(e, "unsupported target 'sm_100' (supported: sm_75 sm_80 sm_86 sm_87 sm_89 sm_90)");
+  Options b;
+  EXPECT_FALSE(parse({"x.wf", "--sm=banana"}, b, e));
+  Options ok;
+  EXPECT_TRUE(parse({"x.wf", "--sm=sm_75"}, ok, e)) << e;
+}
+
+TEST(Options, DroppedTargetsRejected) {
+  Options o;
+  std::string e;
+  EXPECT_FALSE(parse({"x.wf", "--sm=sm_70"}, o, e)); // not assemblable with CUDA 13 ptxas
+}

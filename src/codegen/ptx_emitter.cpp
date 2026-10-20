@@ -42,15 +42,35 @@
 
 namespace wf::codegen {
 
+namespace {
+
+// Lowest PTX ISA version that introduced each target. Only targets whose
+// output has been assembled with ptxas (CUDA 13.3) are listed. CUDA 13
+// dropped sm_50..sm_72, so those can't be verified here and aren't offered.
+// Targets missing from the table are rejected by the driver rather than
+// guessed at: an unknown target with a guessed .version is PTX ptxas refuses.
+constexpr std::pair<const char*, const char*> kTargets[] = {
+    {"sm_75", "6.3"}, {"sm_80", "7.0"}, {"sm_86", "7.1"},
+    {"sm_87", "7.4"}, {"sm_89", "7.8"}, {"sm_90", "7.8"}};
+
+} // namespace
+
+bool isSupportedTarget(const std::string& sm) {
+  for (const auto& [target, version] : kTargets)
+    if (sm == target) return true;
+  return false;
+}
+
+std::string supportedTargets() {
+  std::string out;
+  for (const auto& [target, version] : kTargets) out += (out.empty() ? "" : " ") + std::string(target);
+  return out;
+}
+
 std::string defaultPtxVersion(const std::string& sm) {
-  // Lowest PTX ISA version that introduced each target.
-  static const std::pair<const char*, const char*> kTable[] = {
-      {"sm_50", "4.0"}, {"sm_52", "4.1"}, {"sm_53", "4.2"}, {"sm_60", "5.0"}, {"sm_61", "5.0"},
-      {"sm_62", "5.0"}, {"sm_70", "6.0"}, {"sm_72", "6.1"}, {"sm_75", "6.3"}, {"sm_80", "7.0"},
-      {"sm_86", "7.1"}, {"sm_87", "7.4"}, {"sm_89", "7.8"}, {"sm_90", "7.8"}};
-  for (const auto& [target, version] : kTable)
+  for (const auto& [target, version] : kTargets)
     if (sm == target) return version;
-  return "7.8";
+  return "7.8"; // unreachable through the driver, which validates --sm
 }
 
 namespace {

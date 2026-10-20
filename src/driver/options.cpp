@@ -1,5 +1,7 @@
 #include "driver/options.hpp"
 
+#include "codegen/ptx_emitter.hpp"
+
 #include <string_view>
 
 namespace wf::driver {
@@ -105,6 +107,10 @@ bool parseOptions(int argc, const char* const* argv, Options& o, std::string& er
   }
   if (!haveInput && !o.help && !o.version) {
     error = "no input file";
+    return false;
+  }
+  if (!codegen::isSupportedTarget(o.sm)) {
+    error = "unsupported target '" + o.sm + "' (supported: " + codegen::supportedTargets() + ")";
     return false;
   }
   if (o.input.size() > 5 && o.input.substr(o.input.size() - 5) == ".wfir") o.inputIr = true;
