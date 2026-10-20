@@ -1,0 +1,20 @@
+Kernel vector_add
+  Param float* a
+  Param float* b
+  Param float* c
+  Param int n
+  Block
+    Decl int i
+      GlobalId : int
+    If
+      Binary < : bool
+        Var i : int
+        Var n : int
+      Block
+        Store c
+          Var i : int
+          Binary + : float
+            Index a : float
+              Var i : int
+            Index b : float
+              Var i : int

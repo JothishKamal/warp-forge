@@ -1,0 +1,6 @@
+kernel k() {
+    int x = 1;
+    int x = 2;
+}
+
+// expect-error: 3:9: redeclaration of 'x' in the same scope

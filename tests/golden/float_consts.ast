@@ -1,0 +1,40 @@
+Kernel float_consts
+  Param float* out
+  Block
+    Decl int i
+      GlobalId : int
+    If
+      Binary < : bool
+        Var i : int
+        Int 1 : int
+      Block
+        Store out
+          Int 0 : int
+          Binary + : float
+            Float 0.1 : float
+            Float 0.2 : float
+        Store out
+          Int 1 : int
+          Binary + : float
+            Neg : float
+              Float 0.0 : float
+            Float 0.0 : float
+        Store out
+          Int 2 : int
+          Binary * : float
+            Float 3.0e38 : float
+            Float 10.0 : float
+        Store out
+          Int 3 : int
+          Binary * : float
+            Float 1.0e-45 : float
+            Float 1.0 : float
+        Store out
+          Int 4 : int
+          Neg : float
+            Float 0.0 : float
+        Store out
+          Int 5 : int
+          Binary + : float
+            Float 16777216.0 : float
+            Float 1.0 : float

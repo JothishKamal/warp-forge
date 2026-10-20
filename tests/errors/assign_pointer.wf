@@ -1,0 +1,5 @@
+kernel k(float* a, float* b) {
+    a = b;
+}
+
+// expect-error: 2:5: cannot assign to pointer parameter 'a'

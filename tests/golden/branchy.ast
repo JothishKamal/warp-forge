@@ -1,0 +1,44 @@
+Kernel branchy
+  Param float* in
+  Param float* out
+  Param int n
+  Block
+    Decl int i
+      GlobalId : int
+    If
+      Binary < : bool
+        Var i : int
+        Var n : int
+      Block
+        Decl float v
+          Index in : float
+            Var i : int
+        Decl float r
+          Float 0.0 : float
+        If
+          Binary < : bool
+            Var v : float
+            Float 0.0 : float
+          Block
+            Assign r
+              Neg : float
+                Var v : float
+          Else
+            If
+              Binary < : bool
+                Var v : float
+                Float 1.0 : float
+              Block
+                Assign r
+                  Binary * : float
+                    Var v : float
+                    Var v : float
+              Else
+                Block
+                  Assign r
+                    Binary + : float
+                      Var v : float
+                      Float 1.0 : float
+        Store out
+          Var i : int
+          Var r : float

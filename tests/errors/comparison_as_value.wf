@@ -1,0 +1,5 @@
+kernel k(int x) {
+    x = x < 1;
+}
+
+// expect-error: 2:11: comparison result can only be used as an if condition

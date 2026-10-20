@@ -1,0 +1,5 @@
+kernel k(float* a) {
+    float x = a;
+}
+
+// expect-error: 2:15: cannot use pointer 'a' as a value

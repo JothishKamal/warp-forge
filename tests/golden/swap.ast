@@ -1,0 +1,39 @@
+Kernel swap
+  Param float* x
+  Param float* y
+  Param float* out_a
+  Param float* out_b
+  Param int n
+  Block
+    Decl int i
+      GlobalId : int
+    If
+      Binary < : bool
+        Var i : int
+        Var n : int
+      Block
+        Decl float a
+          Index x : float
+            Var i : int
+        Decl float b
+          Index y : float
+            Var i : int
+        If
+          Binary < : bool
+            Var i : int
+            Binary - : int
+              Var n : int
+              Int 500 : int
+          Block
+            Decl float t
+              Var a : float
+            Assign a
+              Var b : float
+            Assign b
+              Var t : float
+        Store out_a
+          Var i : int
+          Var a : float
+        Store out_b
+          Var i : int
+          Var b : float

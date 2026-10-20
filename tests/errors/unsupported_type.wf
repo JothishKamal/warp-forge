@@ -1,0 +1,3 @@
+kernel k(int* p) { }
+
+// expect-error: 1:10: unsupported type 'int*'

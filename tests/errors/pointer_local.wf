@@ -1,0 +1,5 @@
+kernel k(float* o) {
+    float* p = o;
+}
+
+// expect-error: 2:5: pointer locals are not supported

@@ -1,0 +1,9 @@
+kernel k(float* o, int n) {
+    o[0] = q;
+    float x = o[0] + n;
+    o[1] = n;
+}
+
+// expect-error: 2:12: undefined variable 'q'
+// expect-error: 3:20: invalid operands to '+': float and int
+// expect-error: 4:12: stored value must be float, got int

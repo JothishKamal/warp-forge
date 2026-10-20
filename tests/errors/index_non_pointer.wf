@@ -1,0 +1,5 @@
+kernel k(float* o, int n) {
+    o[0] = n[0];
+}
+
+// expect-error: 2:12: cannot index non-pointer 'n'

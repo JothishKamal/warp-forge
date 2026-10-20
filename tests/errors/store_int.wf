@@ -1,0 +1,5 @@
+kernel k(float* o) {
+    o[0] = 1;
+}
+
+// expect-error: 2:12: stored value must be float, got int

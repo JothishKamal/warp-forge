@@ -1,0 +1,5 @@
+kernel k(int n) {
+    while (n < 10) { n = n + 1; }
+}
+
+// expect-error: 2:5: 'while' is not supported in WarpForge

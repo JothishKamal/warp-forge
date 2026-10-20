@@ -1,0 +1,43 @@
+Kernel saxpy_const
+  Param float* x
+  Param float* y
+  Param int n
+  Block
+    Decl int i
+      GlobalId : int
+    Decl float scale
+      Binary * : float
+        Float 2.0 : float
+        Float 1.5 : float
+    Decl int unused
+      Binary + : int
+        Binary * : int
+          Var i : int
+          Int 4 : int
+        Int 7 : int
+    Decl int lanes
+      Binary * : int
+        Int 32 : int
+        Int 8 : int
+    If
+      Binary < : bool
+        Var lanes : int
+        Int 0 : int
+      Block
+        Store y
+          Var i : int
+          Float 0.0 : float
+    If
+      Binary < : bool
+        Var i : int
+        Var n : int
+      Block
+        Store y
+          Var i : int
+          Binary + : float
+            Binary * : float
+              Var scale : float
+              Index x : float
+                Var i : int
+            Index y : float
+              Var i : int

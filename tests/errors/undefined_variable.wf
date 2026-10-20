@@ -1,0 +1,5 @@
+kernel k(float* o) {
+    o[0] = y;
+}
+
+// expect-error: 2:12: undefined variable 'y'

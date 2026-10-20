@@ -1,0 +1,4 @@
+kernel k() { }
+kernel k() { }
+
+// expect-error: 2:8: duplicate kernel name 'k'
