@@ -87,7 +87,7 @@ if.end.1:
 
 </td></tr></table>
 
-The generated PTX for `examples/vector_add.wf`:
+The generated PTX for `examples/vector_add.wf` (abridged; the full file is [`tests/golden/vector_add.ptx`](tests/golden/vector_add.ptx)):
 
 ```ptx
 .version 7.1
