@@ -1,0 +1,14 @@
+kernel @k(ptr %o, i32 %n) {
+entry:
+  %i = global_id
+  br join
+
+dead:
+  br join
+
+join:
+  %s = add.i32 %i, 1
+  %p = addr %o, %s
+  store.f32 0x3F800000, %p
+  ret
+}

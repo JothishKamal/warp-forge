@@ -63,6 +63,29 @@ if.end:
 - **Deterministic:** names are assigned at print time from the IR's structure alone. Printing the same IR
   twice, or compiling the same source twice, gives identical bytes. The golden-file suite checks this.
 
+### Parsing it back
+
+The text format is also an input. [`src/ir/ir_parser.cpp`](../src/ir/ir_parser.cpp) reads it, and
+`warpforge x.wfir` (or `--input-ir`) runs the pipeline on it directly, skipping the front end:
+
+```sh
+warpforge tests/ir/sccp_unexecutable_arm.wfir --passes=sccp --dump-ir
+```
+
+- **Two phases.** First every block and instruction is created without operands. Result types are fully
+  determined by the spelling (`add.i32`, `lt.f32` → `i1`, `addr` → `ptr`), so each value exists, correctly
+  typed, before any operand is read. Then operands and branch targets are resolved by name. Forward
+  references, such as a phi naming a value from a later block, need no special handling.
+- **Comments:** lines starting with `;` are comments, so `--print-after-all` output can be fed straight back
+  in.
+- **Errors:** syntax errors are reported as `line:col: message`. Semantic errors (types, dominance, phi
+  entries) are left to the verifier, so tests can hand it deliberately broken IR.
+- **Round trip:** `print(parse(print(M))) == print(M)` holds for every example at -O0 and -O1
+  (`IRParser.RoundTripsEveryExampleAtO0AndO1`).
+- **Pass tests:** `tests/ir/*.wfir` hold hand-written IR with a `; passes: …` header. `tests/run_ir_tests.py`
+  compares the result with the matching `.expected` file, in a "given this IR, expect that IR" style, like
+  LLVM's `opt` tests.
+
 ## Verifier
 
 [`src/ir/verifier.cpp`](../src/ir/verifier.cpp) runs after IRGen and after every pass, by default.

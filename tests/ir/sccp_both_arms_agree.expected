@@ -1,0 +1,17 @@
+kernel @k(ptr %o, i32 %n) {
+entry:
+  %i = global_id
+  %c = lt.i32 %i, %n
+  condbr %c, a, b
+
+a:
+  br join
+
+b:
+  br join
+
+join:
+  %p = addr %o, 6
+  store.f32 0x00000000, %p
+  ret
+}

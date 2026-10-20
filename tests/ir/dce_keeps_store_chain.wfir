@@ -1,0 +1,14 @@
+; passes: dce
+; Everything feeding the store stays; the unused load and arithmetic go.
+kernel @k(ptr %o, i32 %n) {
+entry:
+  %i = global_id
+  %dead1 = mul.i32 %i, 4
+  %dead2 = add.i32 %dead1, %n
+  %p = addr %o, %i
+  %unused = load.f32 %p
+  %v = load.f32 %p
+  %w = mul.f32 %v, 0x40000000
+  store.f32 %w, %p
+  ret
+}

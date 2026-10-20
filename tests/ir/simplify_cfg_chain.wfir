@@ -1,0 +1,19 @@
+; passes: simplify-cfg
+; A straight-line chain of blocks collapses into the entry, and the
+; unreachable block (with its phi input) disappears.
+kernel @k(ptr %o) {
+entry:
+  br b1
+
+orphan:
+  br b2
+
+b1:
+  %v = load.f32 %o
+  br b2
+
+b2:
+  %x = phi.f32 [%v, b1], [0x3F800000, orphan]
+  store.f32 %x, %o
+  ret
+}

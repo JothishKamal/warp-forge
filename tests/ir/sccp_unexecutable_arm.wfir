@@ -1,0 +1,19 @@
+; passes: sccp
+; The edge into `dead` is never executable (the condition is the constant
+; false), so the phi only sees 1 and becomes the constant 1.
+kernel @k(ptr %o, i32 %n) {
+entry:
+  %i = global_id
+  %c = lt.i32 7, 3
+  condbr %c, dead, join
+
+dead:
+  br join
+
+join:
+  %x = phi.i32 [1, entry], [5, dead]
+  %s = add.i32 %i, %x
+  %p = addr %o, %s
+  store.f32 0x3F800000, %p
+  ret
+}

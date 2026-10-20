@@ -66,3 +66,10 @@ foreach(example ${WARPFORGE_EXAMPLES})
     set_tests_properties(gpu_${kernel}_${variant} PROPERTIES SKIP_RETURN_CODE 77 LABELS gpu)
   endforeach()
 endforeach()
+
+# Hand-written IR in, expected IR out: each pass tested in isolation.
+if(Python3_FOUND)
+  add_test(NAME ir_passes
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/run_ir_tests.py
+            $<TARGET_FILE:warpforge> ${CMAKE_CURRENT_SOURCE_DIR}/ir)
+endif()
