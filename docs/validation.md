@@ -40,6 +40,20 @@ reference interpreter (`src/ir/interpreter.cpp`) over 1000 threads with three se
 output buffer must match **bit-for-bit**. The interpreter also aborts on out-of-bounds accesses and on
 cross-thread write/read conflicts, so a passing run also proves the inputs were well-defined.
 
+`test_random_programs.cpp` extends this beyond the hand-written examples. A seeded generator writes 500
+well-typed programs, each of which goes through the same -O0-vs-O1 check and through PTX emission. A
+failure prints the seed and the full program. The programs contain:
+
+- nested `if`/`else` blocks
+- mixed `int` and `float` arithmetic, and shadowing
+- edge-case constants: `INT_MAX`, `-0.0`, subnormals, values near overflow
+- conditions that are constant true or false, and dead code
+
+Every access is `in[i]` or `out[i]` under `i < n`, so every program is well-defined by construction.
+
+`tests/ir/*.wfir` exercise single passes on hand-written IR, with expected outputs written from the
+algorithm rather than captured from the tool. See [ir.md](ir.md#parsing-it-back).
+
 ## 4. NVIDIA toolchain and hardware
 
 ### Static: `ptxas`

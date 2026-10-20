@@ -163,4 +163,5 @@ entry:
 | dce | `DCE.*`: keeps stores, dead chains, unused loads, dead phis |
 | simplify-cfg | `SimplifyCFG.*`: unreachable + merge, phi repair, real diamonds untouched, empty arms |
 | pipeline | `Pipeline.ReachesFixpointOnSaxpy`, `PassManager.*` (verifier catches a broken pass, printing, unknown pass) |
-| all | `Differential.ExamplesO0vsO1` |
+| all | `Differential.ExamplesO0vsO1`, `RandomPrograms.OptimizerPreservesSemantics` (500 generated programs) |
+| each pass alone | `tests/ir/*.wfir` + `.expected`, hand-written IR run through `--passes=<one pass>` |
