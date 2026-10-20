@@ -18,6 +18,7 @@
 #include "frontend/parser.hpp"
 
 #include <array>
+#include <cmath>
 #include <cstdlib>
 #include <string_view>
 
@@ -387,8 +388,15 @@ private:
     }
     case TokenKind::FloatLit: {
       next();
-      // strtof rounds the decimal text to the nearest binary32 value.
+      // strtof rounds the decimal text to the nearest binary32 value. A
+      // literal too large for float would silently become inf: reject it, as
+      // the lexer does for out-of-range ints. (Tiny literals rounding to a
+      // subnormal or to zero are exact IEEE behaviour and allowed.)
       float v = std::strtof(t.text.c_str(), nullptr);
+      if (std::isinf(v)) {
+        error(t, "float literal '" + t.text + "' is out of range for float (max ~3.4028235e38)");
+        return nullptr;
+      }
       return std::make_unique<FloatLitExpr>(t.loc, v, t.text);
     }
     case TokenKind::KwGlobalId: {

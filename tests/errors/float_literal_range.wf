@@ -1,0 +1,5 @@
+kernel k(float* o) {
+    o[0] = 1e39;
+}
+
+// expect-error: 2:12: float literal '1e39' is out of range for float

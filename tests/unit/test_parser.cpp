@@ -148,3 +148,10 @@ TEST(Parser, MissingSemicolon) {
   Parsed p("kernel k(int x) { x = 1 }");
   EXPECT_EQ(p.firstError(), "expected ';' after assignment, found '}'");
 }
+
+TEST(Parser, FloatLiteralOutOfRange) {
+  Parsed p("kernel k(float* o) { o[0] = 1e39; }");
+  EXPECT_EQ(p.firstError(), "float literal '1e39' is out of range for float (max ~3.4028235e38)");
+  Parsed ok("kernel k(float* o) { o[0] = 3.4028235e38; o[1] = 1.0e-45; o[2] = 1.0e-50; }");
+  EXPECT_EQ(ok.diags.errorCount(), 0u) << ok.firstError(); // underflow to 0 or subnormal is fine
+}
