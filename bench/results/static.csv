@@ -1,0 +1,7 @@
+kernel,variant,ptx_instructions,sass_instructions,sass_fingerprint
+vector_add,warpforge-O0,24,16,2a166fd6
+vector_add,warpforge-O1,24,16,2a166fd6
+vector_add,nvcc,22,16,ade128ad
+saxpy_const,warpforge-O0,35,16,9b7f87ca
+saxpy_const,warpforge-O1,23,16,9b7f87ca
+saxpy_const,nvcc,20,16,9b7f87ca

@@ -319,8 +319,9 @@ int main(int argc, char** argv) {
     for (double t : ms) var += (t - mean) * (t - mean);
     double stddev = std::sqrt(var / static_cast<double>(ms.size()));
     double median = sorted[sorted.size() / 2];
-    // Bytes moved, assuming each buffer is touched once per element
-    // (true for every example kernel; documented in docs/benchmarks.md).
+    // Approximate bytes moved: each buffer touched once per element. Exact
+    // for vector_add; undercounts kernels that read and write the same
+    // buffer (saxpy_const: 1.5x). See docs/benchmarks.md.
     double bytes = static_cast<double>(host.size()) * a.n * sizeof(float);
     double gbps = bytes / (median * 1e-3) / 1e9;
     std::printf("BENCH %s %s n=%u runs=%d min=%.4fms median=%.4fms mean=%.4fms stddev=%.4fms ~%.1f GB/s\n",
