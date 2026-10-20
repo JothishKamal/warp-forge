@@ -82,8 +82,23 @@ Three things line up:
    `mul` and `add` into an FMA. The SASS for `saxpy_const` shows `FMUL` + `FADD` and no `FFMA`.
 3. The interpreter uses the same evaluator as the folder.
 
-`examples/float_consts.wf` checks −0.0, ∞, subnormals and rounding: GPU results at -O0 match compile-time
-folds at -O1, bit for bit.
+`examples/float_consts.wf` checks −0.0, ∞, subnormals, rounding and NaN: GPU results at -O0 match
+compile-time folds at -O1, bit for bit.
+
+**What about NaN? (The bug the final review found.)**
+NaN bits differ between platforms, and the original folder trusted the host's.
+- **The problem:** x86 SSE produces the "default NaN" `0xFFC00000`, but PTX `add`/`sub`/`mul.f32` flush every
+  NaN result to the canonical `0x7FFFFFFF`. So `inf - inf` folded at -O1 stored different bits from what the
+  GPU computed at -O0: the optimizer changed observable output. The tests missed it because the -O0 vs -O1
+  checks used the host evaluator as the oracle on both sides. A reviewer found it by fuzzing against the
+  real GPU.
+- **Fix part 1:** the evaluator canonicalizes NaN results.
+- **Fix part 2:** `neg.f32`. PTX leaves its result for NaN inputs unspecified, and when I measured it, the
+  RTX 3060 returns `0x7FFFFFFF` unchanged at run time, while `ptxas`'s own constant folder flips the sign.
+  Since nothing can match both, the backend emits `xor.b32 %f, %f, 0x80000000`, an exact sign flip, which is
+  how the IR defines `neg`.
+- **The lesson:** a differential test is only as good as its oracle, so the GPU has to be one of them
+  (`run_gpu_fuzz.py`).
 
 **Can DCE delete a load? Isn't that unsafe if the load would fault?**
 Yes, an unused load is deleted. WarpForge, like C and CUDA, makes out-of-bounds access undefined behaviour,

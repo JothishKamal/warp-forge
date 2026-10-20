@@ -217,7 +217,8 @@ These are deliberate, following the PRD's "narrow but correct" principle:
   The PTX recomputes `i * 4` for each access; `ptxas` removes the duplicates.
 - No shared memory, barriers or atomics, so kernels must be race-free. The interpreter detects races and
   out-of-bounds accesses.
-- Single target family (PTX ISA ≥ 7.1 for `sm_86` by default; `--sm` and `--ptx-version` override).
+- Targets `sm_75` to `sm_90`, each verified with `ptxas` 13.3. `sm_86` (PTX ISA 7.1) is the default. Other
+  targets are rejected rather than guessed.
 
 ## Layout
 

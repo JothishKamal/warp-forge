@@ -27,7 +27,7 @@ Numbering starts at 1 and follows emission order, so it is deterministic.
 | `global_id` | `mov.u32` from `%ctaid.x`, `%ntid.x`, `%tid.x`; `mad.lo.s32 %r, %ctaid, %ntid, %tid` |
 | `add/sub/mul.i32` | `add.s32` / `sub.s32` / `mul.lo.s32` |
 | `add/sub/mul.f32` | **`add.rn.f32` / `sub.rn.f32` / `mul.rn.f32`** |
-| `neg` | `neg.s32` / `neg.f32` |
+| `neg` | `neg.s32` / **`xor.b32 %f, %f, 0x80000000`** (not `neg.f32`, see below) |
 | `lt` | `setp.lt.s32` / `setp.lt.f32` |
 | `addr p, i` | `mul.wide.s32 %rd, %i, 4` + `add.s64 %rd, %p, %rd`. A constant index becomes `add.s64 %rd, %p, 4*i`, or no instruction at all for index 0 |
 | `load` / `store` | `ld.global.f32` / `st.global.f32` |
@@ -41,6 +41,15 @@ Details:
 - **`.rn` is a correctness choice, not style.** Without a rounding modifier, `ptxas` may contract
   `mul.f32` followed by `add.f32` into one `fma.rn.f32`. That rounds once instead of twice, so the GPU would
   disagree with the constant folder and the interpreter. The explicit `.rn` forbids contraction.
+- **Float negation is a sign-bit XOR, not `neg.f32`.** The PTX ISA leaves `neg.f32` of a NaN input
+  unspecified, and on sm_86 the two NVIDIA paths disagree. At run time the RTX 3060 returns the canonical
+  NaN `0x7FFFFFFF` unchanged, while `ptxas` constant-folds `neg` of a known NaN by flipping the sign
+  (`0xFFFFFFFF`). Neither can be matched in every case, so WarpForge emits an exact sign flip:
+  `xor.b32 %f2, %f1, 0x80000000`. `.b32` instructions accept `.f32` registers. The IR defines `neg` as
+  exactly this, and the constant folder computes it the same way. The GPU tests cover it (`float_consts`,
+  out[8]) along with `PTX.FloatNegationIsSignBitXor`.
+- **NaN results are canonical.** `add`/`sub`/`mul.rn.f32` produce `0x7FFFFFFF` for every NaN. The folder
+  and interpreter do the same, so a NaN folded at -O1 has exactly the bits the GPU computes at -O0.
   `PTX.FloatArithmeticIsRoundToNearest` checks there is no `fma` in the output.
 - **Immediates:** floats are written as exact bit patterns (`0f3F800000`), never as decimal. Constant first
   operands of `add`/`mul` are swapped into the second position, which is exact because IEEE add and mul are
@@ -108,5 +117,8 @@ are emitted only for blocks some branch actually jumps to, and they use nvcc's n
 ```
 
 `.version` defaults to the lowest PTX ISA version that introduced the target (`sm_86` → 7.1, `sm_89`/`sm_90`
-→ 7.8). `--sm` and `--ptx-version` override it. The output contains no timestamps or paths, so the same
-input and flags give byte-identical PTX.
+→ 7.8). `--sm` accepts only targets whose output has been assembled with `ptxas` 13.3: `sm_75`, `sm_80`,
+`sm_86`, `sm_87`, `sm_89` and `sm_90`. Anything else is a usage error. Guessing a `.version` for an unknown
+target would produce PTX that `ptxas` refuses, and CUDA 13 no longer supports sm_50–sm_72 at all.
+`--ptx-version` overrides the version. The output contains no timestamps or paths, so the same input and
+flags give byte-identical PTX.

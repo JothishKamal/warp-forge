@@ -30,7 +30,13 @@ disagree:
 
 - `i32` arithmetic is done in `uint32_t`: wrap-around, with no host undefined behaviour.
 - `f32` arithmetic is one host `float` operation, built with `-ffp-contract=off`. That matches PTX
-  `add.rn`/`mul.rn` bit-for-bit, including −0.0, NaN, ∞ and subnormals (`ConstEval.FloatEdgeCases`).
+  `add.rn`/`mul.rn` bit-for-bit for −0.0, ∞ and subnormals (`ConstEval.FloatEdgeCases`).
+- **NaN needs one extra rule.** PTX flushes every NaN result of `add`/`sub`/`mul.f32` to the canonical NaN
+  `0x7FFFFFFF`. x86 SSE instead produces `0xFFC00000` and propagates payloads, so the evaluator
+  canonicalizes NaN results explicitly. Negation is a sign-bit flip on the bit pattern, and the backend
+  emits it as exactly that (see [codegen.md](codegen.md)). The final review caught this: before the fix,
+  `inf - inf` folded to a different NaN than the GPU computes, so -O1 changed observable bits.
+  `examples/float_consts.wf` now pins it on the GPU.
 
 ## const-fold
 

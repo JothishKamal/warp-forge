@@ -54,6 +54,21 @@ Every access is `in[i]` or `out[i]` under `i < n`, so every program is well-defi
 `tests/ir/*.wfir` exercise single passes on hand-written IR, with expected outputs written from the
 algorithm rather than captured from the tool. See [ir.md](ir.md#parsing-it-back).
 
+**The limit of this level:** the interpreter shares its float evaluator with the constant folder, so it
+can't see where host semantics differ from the GPU's. That is how a NaN bug got through (see below). The
+GPU fuzz at level 4 closes that gap.
+
+## 4b. GPU fuzz (`tests/run_gpu_fuzz.py`, CTest `gpu_fuzz`)
+
+- **What runs:** `wf-gen` writes 150 programs from the same generator, now with `return;` and dead code
+  after it. Each one is compiled at -O0 and -O1, assembled with `ptxas -arch=sm_86`, and run on the GPU
+  with `wf-run --check`. The GPU's output must match the interpreter bit-for-bit, 300 runs in all.
+- **Why it exists:** the final code review found that NaN results weren't bit-exact. The host produces
+  `0xFFC00000`, but PTX canonicalizes to `0x7FFFFFFF`, and `neg.f32` of a NaN is unspecified in PTX.
+- **Proof that it works:** with the pre-fix evaluator and emitter restored, the interpreter-only test still
+  passes, while the GPU fuzz fails 6 of 300 runs (seeds 56, 72, 114, …). With the fixes, 0 fail.
+- **Without a GPU:** it skips with exit code 77.
+
 ## 4. NVIDIA toolchain and hardware
 
 ### Static: `ptxas`
