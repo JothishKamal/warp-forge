@@ -148,11 +148,12 @@ private:
     for (auto& [block, phis] : incompletePhis_)
       for (auto& [var, p] : phis)
         if (p == phi) p = nullptr;
+    erasedPhis_.insert(phi);
     phi->eraseFromParent();
 
     // Removing this phi may have made phis that used it trivial too.
     for (Instruction* u : phiUsers)
-      if (u->parent()) tryRemoveTrivialPhi(u); // may already have been removed
+      if (!erasedPhis_.count(u)) tryRemoveTrivialPhi(u); // may already be gone
     return same;
   }
 
@@ -283,6 +284,7 @@ private:
   // Per block, in creation order (iteration order must not depend on pointers).
   std::map<BasicBlock*, std::vector<std::pair<const VarDecl*, Instruction*>>> incompletePhis_;
   std::set<BasicBlock*> sealed_;
+  std::set<const Instruction*> erasedPhis_; // never dereferenced, only compared
 };
 
 } // namespace
