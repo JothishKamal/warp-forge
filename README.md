@@ -17,7 +17,7 @@ bit-for-bit against a CPU reference.
 | **SSA construction** | Braun et al. 2013 (*Simple and Efficient Construction of SSA Form*): phis placed on the fly, trivial phis removed. |
 | **Passes** | Constant folding, **SCCP** (Wegman–Zadeck), mark-sweep DCE, CFG simplification. Pass manager with `--print-after-all` and the verifier between passes. |
 | **Backend** | Critical-edge splitting and parallel-copy sequentialization (lost-copy and swap problems), typed virtual registers, `.rn` float ops, nvcc-style labels. |
-| **Validation** | 161 CTest tests: unit, golden files, diagnostics, hand-written IR pass tests, O0-vs-O1 differential tests on a reference interpreter (examples + 500 random programs), `ptxas`, and GPU runs through the CUDA Driver API. |
+| **Validation** | 167 CTest tests: unit, golden files, diagnostics, hand-written IR pass tests, O0-vs-O1 differential tests on a reference interpreter (examples + 500 random programs), `ptxas`, GPU runs through the CUDA Driver API, and a GPU fuzz that uses the hardware as the oracle (300 runs). |
 
 ## Example
 
@@ -127,7 +127,7 @@ Python 3 for the golden-file suites. A GPU and the CUDA Toolkit are optional (se
 ```sh
 cmake --preset mingw-gcc          # or: cmake -B build -G Ninja
 cmake --build build/mingw-gcc
-ctest --test-dir build/mingw-gcc  # 161 tests; GPU/ptxas tests skip if unavailable
+ctest --test-dir build/mingw-gcc  # 167 tests; GPU/ptxas tests skip if unavailable
 ```
 
 ```sh
@@ -179,15 +179,19 @@ CUDA application uses when it ships PTX. Details: [docs/validation.md](docs/vali
 Bit-exactness is by design, not luck. The constant folder, the interpreter and the GPU all perform each
 `f32` operation as one IEEE round-to-nearest operation. The emitter writes `add.rn`/`mul.rn` so that `ptxas`
 cannot fuse a multiply and an add into an FMA, and the host build uses `-ffp-contract=off`.
-`examples/float_consts.wf` covers −0.0, ∞, subnormals and rounding: the GPU's results at -O0 match the
-compile-time folds at -O1.
+NaN results are canonicalized to PTX's `0x7FFFFFFF`. Float negation is emitted as an exact sign-bit
+`xor.b32`, because PTX leaves `neg.f32` of a NaN unspecified, and on sm_86 the hardware and `ptxas`'s folder
+disagree. Both rules came out of the final review, which found them by fuzzing against the GPU.
+`examples/float_consts.wf` covers −0.0, ∞, subnormals, rounding and NaN: the GPU's results at -O0 match the
+compile-time folds at -O1 ([codegen.md](docs/codegen.md)).
 
 ## Benchmarks
 
 RTX 3060 Laptop, CUDA 13.3, 200 warmup + 200 timed launches, n = 2²⁴. Every variant passed the
-bit-exact GPU check before it was timed:
+bit-exact GPU check before it was timed. nvcc's PTX was built with `-O3 -fmad=false`, which gives it
+WarpForge's no-FMA float semantics so both can pass the same bit-exact check:
 
-| kernel | WarpForge -O0 | WarpForge -O1 | nvcc -O3 | PTX instr (O0 / O1 / nvcc) | SASS instr |
+| kernel | WarpForge -O0 | WarpForge -O1 | nvcc `-O3 -fmad=false` | PTX instr (O0 / O1 / nvcc) | SASS instr |
 |---|---|---|---|---|---|
 | `vector_add` | 0.665 ms | 0.665 ms | 0.665 ms | 24 / 24 / 22 | 16 / 16 / 16 |
 | `saxpy_const` | 0.670 ms | 0.676 ms | 0.670 ms | 35 / 23 / 20 | 16 / 16 / 16, **identical SASS** |

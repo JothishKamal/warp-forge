@@ -78,9 +78,11 @@ one edge are a **parallel copy**. Emitting `{a ← b, b ← a}` one move at a ti
 2. When only cycles remain, it saves one destination in a fresh temporary, redirects that destination's
    readers to the temporary, and continues. A swap therefore becomes `t ← a; a ← b; b ← t`.
 
-This is the construction in Boissinot et al., *Revisiting Out-of-SSA Translation* (CGO 2009). It is tested
-on swaps, 3-cycles, chains, fan-out and self-copies (`OutOfSSA.*`), and end-to-end on the GPU with
-`examples/swap.wf`:
+This is the construction in Boissinot et al., *Revisiting Out-of-SSA Translation* (CGO 2009). The
+sequentializer is unit-tested on swaps, 3-cycles, chains, fan-out and self-copies (`OutOfSSA.*`).
+`examples/swap.wf` checks on the GPU that both edges of a conditional swap get the right copies, including
+the copies placed on the split critical edge. Its parallel copies contain no cycle, so no temporary is
+emitted; see the note below.
 
 ```ptx
 	setp.lt.s32 	%p2, %r5, %r6;
