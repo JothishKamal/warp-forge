@@ -205,6 +205,7 @@ caveats: [docs/benchmarks.md](docs/benchmarks.md).
 - [docs/codegen.md](docs/codegen.md): IR→PTX mapping, out-of-SSA, layout, and why there is no register allocator
 - [docs/validation.md](docs/validation.md): how correctness is established, and the test inventory
 - [docs/benchmarks.md](docs/benchmarks.md): methodology and results
+- [docs/interview-guide.md](docs/interview-guide.md): likely questions, with answers tied to the code
 - [docs/superpowers/specs/2026-10-20-warpforge-design.md](docs/superpowers/specs/2026-10-20-warpforge-design.md): the design document
 
 ## Limitations
