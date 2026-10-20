@@ -25,8 +25,8 @@
 // the end of every predecessor; the copies for one edge are sequentialized as
 // a parallel copy (out_of_ssa.cpp).
 //
-// Layout: blocks are emitted in function (source) order. Branches to the
-// next block are omitted, and a condbr whose true target is next is inverted
+// Layout: reverse post-order with the true successor placed first (see
+// computeLayout). Branches to the next block are omitted, and a condbr whose true target is next is inverted
 // (`@!%p bra false_target`). Labels follow nvcc's `$L__BB<kernel>_<block>`.
 
 #include "codegen/ptx_emitter.hpp"
@@ -164,14 +164,36 @@ private:
 
   // --------------------------------------------------------------- layout
 
+  // Reverse post-order of a DFS that visits successors last-to-first. RPO is
+  // a topological order of the (acyclic) CFG, so a join always comes after
+  // both arms; visiting the false successor first makes the *true* successor
+  // come right after its branch, so the then-arm falls through.
   void computeLayout() {
-    std::vector<BasicBlock*> rpo = ir::reversePostOrder(fn_);
-    std::unordered_set<const BasicBlock*> reachable(rpo.begin(), rpo.end());
-    for (auto& bb : fn_.blocks())
-      if (reachable.count(bb.get())) {
-        layoutIndex_[bb.get()] = layout_.size();
-        layout_.push_back(bb.get());
+    std::vector<const BasicBlock*> post;
+    std::unordered_set<const BasicBlock*> seen{fn_.entry()};
+    std::vector<std::pair<const BasicBlock*, std::vector<BasicBlock*>>> stack;
+    auto push = [&](const BasicBlock* bb) {
+      std::vector<BasicBlock*> succs = bb->successors(); // popped from the back: true target last
+      stack.emplace_back(bb, std::move(succs));
+    };
+    push(fn_.entry());
+    while (!stack.empty()) {
+      auto& [bb, succs] = stack.back();
+      if (succs.empty()) {
+        post.push_back(bb);
+        stack.pop_back();
+        continue;
       }
+      // Visit the *last* successor first, so the first (true) one finishes
+      // last and therefore lands first in reverse post-order.
+      BasicBlock* s = succs.back();
+      succs.pop_back();
+      if (seen.insert(s).second) push(s);
+    }
+    for (auto it = post.rbegin(); it != post.rend(); ++it) {
+      layoutIndex_[*it] = layout_.size();
+      layout_.push_back(*it);
+    }
     // A block needs a label iff some branch reaches it other than by falling
     // through. emitTerminator() makes the same decisions.
     for (size_t i = 0; i < layout_.size(); ++i) {
