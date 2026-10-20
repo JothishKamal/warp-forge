@@ -1,0 +1,47 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "mingw-gcc",
+      "inherits": "base",
+      "displayName": "MinGW GCC (Debug)",
+      "cacheVariables": { "CMAKE_CXX_COMPILER": "g++" }
+    },
+    {
+      "name": "mingw-clang",
+      "inherits": "base",
+      "displayName": "MinGW Clang (Debug)",
+      "cacheVariables": { "CMAKE_CXX_COMPILER": "clang++" }
+    },
+    {
+      "name": "release",
+      "inherits": "base",
+      "displayName": "GCC Release",
+      "cacheVariables": { "CMAKE_CXX_COMPILER": "g++", "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "ci",
+      "inherits": "base",
+      "displayName": "CI (warnings as errors)",
+      "cacheVariables": { "WARPFORGE_WERROR": "ON" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "mingw-gcc", "configurePreset": "mingw-gcc" },
+    { "name": "mingw-clang", "configurePreset": "mingw-clang" },
+    { "name": "release", "configurePreset": "release" },
+    { "name": "ci", "configurePreset": "ci" }
+  ],
+  "testPresets": [
+    { "name": "mingw-gcc", "configurePreset": "mingw-gcc", "output": { "outputOnFailure": true } },
+    { "name": "release", "configurePreset": "release", "output": { "outputOnFailure": true } },
+    { "name": "ci", "configurePreset": "ci", "output": { "outputOnFailure": true } }
+  ]
+}
