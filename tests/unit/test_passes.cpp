@@ -132,3 +132,70 @@ TEST(PassManager, DefaultPipeline) {
   EXPECT_EQ(passes::defaultPipeline(),
             (std::vector<std::string>{"const-fold", "sccp", "dce", "simplify-cfg"}));
 }
+
+// ------------------------------------------------------------------------ sccp
+
+TEST(SCCP, PropagatesThroughPhi) {
+  // Both arms produce 3 (one via arithmetic), so the join's phi is 3.
+  std::string ir = afterPass("kernel k(float* o, int n) {\n"
+                             "  int i = global_id(); int x = 0;\n"
+                             "  if (i < n) { x = 1 + 2; } else { x = 3; }\n"
+                             "  o[x] = 1.0;\n"
+                             "}\n",
+                             "sccp");
+  EXPECT_EQ(ir.find("phi"), std::string::npos) << ir;
+  EXPECT_NE(ir.find("addr %o, 3"), std::string::npos) << ir;
+}
+
+TEST(SCCP, FoldsBranch) {
+  std::string ir = afterPass("kernel k(float* o) {\n"
+                             "  if (1 < 2) { o[0] = 1.0; } else { o[0] = 2.0; }\n"
+                             "}\n",
+                             "sccp");
+  EXPECT_EQ(ir.find("condbr"), std::string::npos) << ir;
+  EXPECT_NE(ir.find("entry:\n  br if.then\n"), std::string::npos) << ir;
+}
+
+TEST(SCCP, IgnoresUnexecutableArm) {
+  // The `x = 5` arm can never run, so the phi at the join is just 1, which
+  // purely local folding cannot see.
+  std::string ir = afterPass("kernel k(float* o) {\n"
+                             "  int x = 1;\n"
+                             "  if (2 < 1) { x = 5; }\n"
+                             "  o[x] = 1.0;\n"
+                             "}\n",
+                             "sccp");
+  EXPECT_EQ(ir.find("phi"), std::string::npos) << ir;
+  EXPECT_NE(ir.find("addr %o, 1"), std::string::npos) << ir;
+  EXPECT_NE(ir.find("entry:\n  br if.end\n"), std::string::npos) << ir;
+}
+
+TEST(SCCP, ChainedBranchesFold) {
+  // x is known in the taken arm, so the nested condition folds too.
+  std::string ir = afterPass("kernel k(float* o) {\n"
+                             "  int x = 4;\n"
+                             "  if (x < 10) { x = x * 2; if (x < 5) { o[0] = 9.0; } }\n"
+                             "  o[x] = 1.0;\n"
+                             "}\n",
+                             "sccp");
+  EXPECT_EQ(ir.find("condbr"), std::string::npos) << ir;
+  EXPECT_NE(ir.find("addr %o, 8"), std::string::npos) << ir;
+}
+
+TEST(SCCP, NonConstStaysBottom) {
+  bool changed = true;
+  afterPass("kernel v(float* a, float* b, float* c, int n) {\n"
+            "  int i = global_id(); if (i < n) { c[i] = a[i] + b[i]; } }",
+            "sccp", &changed);
+  EXPECT_FALSE(changed);
+}
+
+TEST(SCCP, MixedPhiIsBottom) {
+  std::string ir = afterPass("kernel k(float* o, int n) {\n"
+                             "  int i = global_id(); int x = 1;\n"
+                             "  if (i < n) { x = 2; }\n"
+                             "  o[x] = 1.0;\n"
+                             "}\n",
+                             "sccp");
+  EXPECT_NE(ir.find("phi.i32 [1, entry], [2, if.then]"), std::string::npos) << ir;
+}
