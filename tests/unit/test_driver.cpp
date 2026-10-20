@@ -88,3 +88,16 @@ TEST(Driver, UsageErrorExitCode) {
   EXPECT_EQ(wf::driver::main(1, argv, out, err), kUsageError);
   EXPECT_NE(err.str().find("no input file"), std::string::npos);
 }
+
+TEST(Options, InputIr) {
+  Options o;
+  std::string e;
+  ASSERT_TRUE(parse({"x.txt", "--input-ir", "--passes=sccp", "--dump-ir"}, o, e)) << e;
+  EXPECT_TRUE(o.inputIr);
+  Options auto_;
+  ASSERT_TRUE(parse({"t/pass.wfir", "--dump-ir"}, auto_, e)) << e;
+  EXPECT_TRUE(auto_.inputIr);
+  Options bad;
+  EXPECT_FALSE(parse({"t/pass.wfir", "--dump-ast"}, bad, e));
+  EXPECT_EQ(e, "--dump-tokens, --dump-ast and --check need WarpForge source, not IR input");
+}

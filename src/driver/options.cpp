@@ -14,6 +14,7 @@ const char* usage() {
          "  --dump-ast              print the type-checked AST\n"
          "  --dump-ir               print the IR after the selected pipeline\n"
          "  --check                 stop after semantic analysis (diagnostics only)\n"
+         "  --input-ir              the input is textual IR (implied by a .wfir extension)\n"
          "\n"
          "Optimization:\n"
          "  -O0, --no-opt           no optimization passes\n"
@@ -64,6 +65,8 @@ bool parseOptions(int argc, const char* const* argv, Options& o, std::string& er
       o.dumpIr = true;
     } else if (arg == "--check") {
       o.check = true;
+    } else if (arg == "--input-ir") {
+      o.inputIr = true;
     } else if (arg == "-O0" || arg == "--no-opt") {
       o.optLevel = 0;
     } else if (arg == "-O1" || arg == "--opt") {
@@ -102,6 +105,11 @@ bool parseOptions(int argc, const char* const* argv, Options& o, std::string& er
   }
   if (!haveInput && !o.help && !o.version) {
     error = "no input file";
+    return false;
+  }
+  if (o.input.size() > 5 && o.input.substr(o.input.size() - 5) == ".wfir") o.inputIr = true;
+  if (o.inputIr && (o.dumpTokens || o.dumpAst || o.check)) {
+    error = "--dump-tokens, --dump-ast and --check need WarpForge source, not IR input";
     return false;
   }
   return true;

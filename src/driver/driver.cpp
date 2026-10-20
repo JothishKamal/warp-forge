@@ -1,5 +1,7 @@
 // The compiler driver: source file -> tokens -> AST -> IR -> passes -> PTX,
-// with optional dumps at each stage.
+// with optional dumps at each stage. With --input-ir (or a .wfir file) the
+// front end is skipped and the IR is parsed directly, which is how passes are
+// tested in isolation.
 
 #include "driver/driver.hpp"
 
@@ -7,6 +9,7 @@
 #include "frontend/lexer.hpp"
 #include "frontend/parser.hpp"
 #include "frontend/sema.hpp"
+#include "ir/ir_parser.hpp"
 #include "ir/irgen.hpp"
 #include "ir/printer.hpp"
 #include "ir/verifier.hpp"
@@ -30,14 +33,10 @@ bool readFile(const std::string& path, std::string& text) {
   return true;
 }
 
-} // namespace
-
-int run(const Options& o, std::ostream& out, std::ostream& err) {
-  std::string text;
-  if (!readFile(o.input, text)) {
-    err << "warpforge: error: cannot read '" << o.input << "'\n";
-    return kIOError;
-  }
+// Source -> verified IR. Returns kOk with `module` null when the run should
+// stop early (--check).
+int runFrontend(const Options& o, std::string text, std::unique_ptr<ir::Module>& module, std::ostream& out,
+                std::ostream& err) {
   SourceFile file(o.input, std::move(text));
   DiagnosticEngine diags(file);
   auto fail = [&] {
@@ -46,7 +45,6 @@ int run(const Options& o, std::ostream& out, std::ostream& err) {
     return kCompileError;
   };
 
-  // Frontend.
   std::vector<Token> tokens = lex(file, diags);
   if (o.dumpTokens) dumpTokens(tokens, out);
   if (diags.errorCount()) return fail();
@@ -56,13 +54,34 @@ int run(const Options& o, std::ostream& out, std::ostream& err) {
   if (o.dumpAst) dumpAst(*program, out);
   if (o.check) return kOk;
 
-  // Middle end.
-  std::unique_ptr<ir::Module> module = lowerProgram(*program);
+  module = lowerProgram(*program);
   if (auto errs = ir::verifyModule(*module); !errs.empty()) {
     err << "warpforge: internal error: IRGen produced invalid IR:\n";
     for (const auto& e : errs) err << "  " << e << '\n';
     return kCompileError;
   }
+  return kOk;
+}
+
+// Textual IR -> verified IR.
+int parseIRInput(const Options& o, const std::string& text, std::unique_ptr<ir::Module>& module,
+                 std::ostream& err) {
+  std::string error;
+  module = ir::parseIR(text, error);
+  if (!module) {
+    err << o.input << ':' << error << '\n';
+    return kCompileError;
+  }
+  if (auto errs = ir::verifyModule(*module); !errs.empty()) {
+    err << o.input << ": error: invalid IR:\n";
+    for (const auto& e : errs) err << "  " << e << '\n';
+    return kCompileError;
+  }
+  return kOk;
+}
+
+// Passes, IR dump, PTX emission.
+int runMiddleAndBackEnd(const Options& o, ir::Module& module, std::ostream& out, std::ostream& err) {
   passes::PipelineOptions pipeline;
   if (o.customPasses) {
     pipeline.passes = o.passes;
@@ -75,18 +94,17 @@ int run(const Options& o, std::ostream& out, std::ostream& err) {
   pipeline.printAfter = o.printAfter;
   pipeline.log = &err;
   std::string error;
-  if (!passes::runPipeline(*module, pipeline, error)) {
+  if (!passes::runPipeline(module, pipeline, error)) {
     err << "warpforge: error: " << error << '\n';
     return o.customPasses && error.rfind("unknown pass", 0) == 0 ? kUsageError : kCompileError;
   }
-  if (o.dumpIr) out << ir::printModule(*module);
+  if (o.dumpIr) out << ir::printModule(module);
   if (!o.emitPtx()) return kOk;
 
-  // Backend.
   codegen::PTXOptions target;
   target.sm = o.sm;
   target.ptxVersion = o.ptxVersion;
-  std::string ptx = codegen::emitPTX(*module, target);
+  std::string ptx = codegen::emitPTX(module, target);
   if (o.output == "-") {
     out << ptx;
     return kOk;
@@ -102,6 +120,20 @@ int run(const Options& o, std::ostream& out, std::ostream& err) {
     return kIOError;
   }
   return kOk;
+}
+
+} // namespace
+
+int run(const Options& o, std::ostream& out, std::ostream& err) {
+  std::string text;
+  if (!readFile(o.input, text)) {
+    err << "warpforge: error: cannot read '" << o.input << "'\n";
+    return kIOError;
+  }
+  std::unique_ptr<ir::Module> module;
+  int status = o.inputIr ? parseIRInput(o, text, module, err) : runFrontend(o, std::move(text), module, out, err);
+  if (status != kOk || !module) return status;
+  return runMiddleAndBackEnd(o, *module, out, err);
 }
 
 int main(int argc, const char* const* argv, std::ostream& out, std::ostream& err) {

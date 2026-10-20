@@ -13,6 +13,7 @@ struct Options {
   bool dumpAst = false;
   bool dumpIr = false;
   bool check = false; // stop after semantic analysis
+  bool inputIr = false; // input is textual IR (--input-ir, or a .wfir file)
 
   int optLevel = 1;                 // -O0 / -O1
   bool customPasses = false;        // --passes given
