@@ -23,6 +23,24 @@ The owner wants the interview conversation to centre on **the optimization passe
 - Honest, reproducible benchmarks.
 - Docs that double as interview prep.
 
+### PRD traceability
+| PRD | Covered in |
+|---|---|
+| FR-01 source input + locations | §4.4 |
+| FR-02 lexing (identifiers, keywords, numeric literals, delimiters, operators, EOF) | §4.2 lexical rules, `--dump-tokens` §12 |
+| FR-03 parsing (kernels, params, decls, arithmetic, assignment, indexed access, conditionals) | §4.2 grammar, `--dump-ast` §12 |
+| FR-04 semantic checks | §4.3, §4.4 |
+| FR-05 IR + stable dump / FR-06 IR validation | §6.3 / §6.4 |
+| FR-07 passes / FR-08 pass control | §8 / §8.1, §12 |
+| FR-09 PTX | §9 |
+| FR-10 ptxas / FR-11 execution | §10.2 |
+| FR-12 benchmarks | §11 |
+| FR-13 CLI | §12 |
+| FR-14 tests | §10 |
+| FR-15 docs | §14 |
+| PRD §9 quality (C++20/CMake, warnings, determinism, diagnostics, portability, honesty) | §3, §13, §9.4, §4.4, §10.1, §11 |
+| PRD §11 definition of done | §15 milestones 1–8 together |
+
 ### Non-goals (from PRD, unchanged)
 - Full C/C++/CUDA, templates, classes, exceptions.
 - Linker, debugger, object-file format.
@@ -231,7 +249,15 @@ Mark-and-sweep: roots are instructions with side effects (`store`) and terminato
 Utility pass: delete blocks unreachable from entry (updating φs), fold `condbr x, B, B` into `br B`, merge a block into its sole predecessor when that predecessor has a single successor, remove φs with a single incoming value or identical incoming values.
 
 ### 8.6 What "safe" means (the documented rule)
-A transformation is allowed only if, for every input, the interpreter (§6.5) produces bit-identical memory before and after. The differential tests enforce this on all examples and on randomly generated programs (§10).
+A transformation is allowed only if, for every **well-defined execution**, the interpreter (§6.5) produces bit-identical memory before and after. The differential tests enforce this on all examples and on randomly generated programs (§10).
+
+**Well-defined execution** *(builder's call, recorded here)*: every executed load/store is in bounds of its buffer, and no two threads store to the same element (and no thread reads an element another thread stores). As in C and CUDA, out-of-bounds access and data races are **undefined behaviour**; the compiler may assume they don't happen. Consequences:
+- Deleting an unused load is safe (an OOB load would have been UB anyway).
+- The interpreter **traps with a clear error** on any OOB access and **detects cross-thread write/read conflicts** on the same element — a debugging aid, and how the test harness proves an input set is well-defined.
+- The random program generator only emits indices of the form `global_id()` (optionally guarded by `if (i < n)`) for loads/stores, so generated programs are well-defined by construction; constant indices appear only in stores executed by a single guarded thread, or not at all.
+- `wf-run` GPU-vs-reference comparison applies to well-defined kernels; each kernel's harness config states buffer sizes and scalar args (`--arg n=…`, defaults derived from `--n`).
+
+Duplicate kernel names in one file are a semantic error.
 
 ## 9. PTX backend (FR-09)
 
@@ -343,17 +369,30 @@ The PRD's illustrative commands must work: `warpforge examples/vector_add.wf --e
 - `docs/language.md` (grammar, semantics, diagnostics), `docs/ir.md`, `docs/passes/{const-fold,sccp,dce,simplify-cfg}.md` (each with before/after IR), `docs/codegen.md` (IR→PTX mapping table, out-of-SSA walkthrough, why `.rn`, why no regalloc), `docs/validation.md`, `docs/benchmarks.md`.
 - `docs/interview-guide.md`: likely interviewer questions with answers grounded in the actual code (e.g. "Why is `x*0 → 0` legal for int but not float?", "What does ptxas do that you don't?", "How do you know your optimizations are correct?", "What's the lost-copy problem?").
 
-## 15. Delivery order
+## 15. Delivery order and cut line
 
-Follows the PRD's milestones; each ends with green tests and a coherent set of commits.
-1. Repo scaffold, build, CI file, diagnostics infrastructure.
-2. Lexer → parser → AST dump → sema, with error tests.
-3. IR core, printer, parser, verifier, dominators; Braun SSA IRGen; interpreter.
-4. Pass manager; const-fold; sccp; dce; simplify-cfg; IR pass tests; differential + random tests.
-5. PTX backend (out-of-SSA, isel, emitter); golden PTX.
-6. Install CUDA Toolkit + VS Build Tools; ptxas validation; `wf-run` execution checks on the RTX 3060.
-7. Benchmarks with nvcc baseline; results.
-8. Docs, interview guide, README polish.
+**Deadline: implementation finished by 18:00 on 2026-10-20** (the owner is putting it on their resume). Work starts ~15:00, so roughly three hours. Order is a **vertical slice first**, then depth, so that at any moment the repo has something demonstrable.
+
+**Start immediately, in the background:** `winget` installs of the CUDA Toolkit and VS 2022 Build Tools (large downloads; the owner approves UAC prompts), so they're ready by step 4.
+
+**Tier 1 — must be done by 18:00 (the resume-worthy core):**
+1. Scaffold, CMake presets (MinGW), diagnostics infrastructure, GoogleTest.
+2. Lexer, parser, sema with error tests; token/AST dumps.
+3. IR core, printer, verifier + dominators, Braun SSA IRGen, interpreter.
+4. Pass manager + const-fold, sccp, dce, simplify-cfg, each with unit tests; O0-vs-O1 differential tests on the examples.
+5. PTX backend (out-of-SSA with lost-copy/swap tests, isel, emitter); golden PTX; determinism test.
+6. ptxas validation + `wf-run` bit-exact check of `vector_add` on the RTX 3060.
+7. README with real before/after IR+PTX, validation results, limitations; `docs/codegen.md` and `docs/passes.md` (single file is acceptable at Tier 1).
+
+**Tier 2 — done if time allows, in this order:**
+8. Benchmarks (`wf-run --bench`, nvcc baseline) and `docs/benchmarks.md` with honest results.
+9. `docs/interview-guide.md`.
+10. Textual IR parser + `.wfir` pass tests + round-trip test.
+11. Random program generator for differential testing.
+
+**Tier 3 — after the deadline, if at all:** MSVC preset, GitHub Actions workflow file, per-pass doc pages.
+
+If Tier 1 slips, cut from the bottom of Tier 1's docs first, never from tests or validation — an unvalidated claim on a resume is worse than a shorter README.
 
 ## 16. Left to the builder
 
