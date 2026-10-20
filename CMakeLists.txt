@@ -37,3 +37,8 @@ if(WARPFORGE_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests)
 endif()
+
+# GPU harness: talks to the CUDA driver (loaded at run time), no toolkit needed.
+add_executable(wf-run tools/wf-run/main.cpp tools/wf-run/cuda_driver.cpp)
+target_link_libraries(wf-run PRIVATE warpforge_core ${CMAKE_DL_LIBS})
+warpforge_set_warnings(wf-run)
