@@ -1,0 +1,16 @@
+kernel @early_return(ptr %out, i32 %n) {
+entry:
+  %i = global_id
+  %0 = add.i32 %i, 1
+  %1 = lt.i32 %n, %0
+  condbr %1, if.then, if.end
+
+if.then:
+  ret
+
+if.end:
+  %2 = mul.f32 0x40000000, 0x3F000000
+  %3 = addr %out, %i
+  store.f32 %2, %3
+  ret
+}

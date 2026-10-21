@@ -1,0 +1,30 @@
+kernel @swap(ptr %x, ptr %y, ptr %out_a, ptr %out_b, i32 %n) {
+entry:
+  %i = global_id
+  %0 = lt.i32 %i, %n
+  condbr %0, if.then, if.end
+
+if.then:
+  %1 = addr %x, %i
+  %a = load.f32 %1
+  %2 = addr %y, %i
+  %b = load.f32 %2
+  %3 = sub.i32 %n, 500
+  %4 = lt.i32 %i, %3
+  condbr %4, if.then.1, if.end.1
+
+if.end:
+  ret
+
+if.then.1:
+  br if.end.1
+
+if.end.1:
+  %a.1 = phi.f32 [%a, if.then], [%b, if.then.1]
+  %b.1 = phi.f32 [%b, if.then], [%a, if.then.1]
+  %5 = addr %out_a, %i
+  store.f32 %a.1, %5
+  %6 = addr %out_b, %i
+  store.f32 %b.1, %6
+  br if.end
+}

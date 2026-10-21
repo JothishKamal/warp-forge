@@ -1,0 +1,5 @@
+kernel k(float* o, int n) {
+    o[0] = o[1] + n;
+}
+
+// expect-error: 2:17: invalid operands to '+': float and int

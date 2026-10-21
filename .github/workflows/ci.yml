@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  linux-gcc:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ninja
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Configure (GCC, warnings as errors)
+        run: cmake --preset ci
+      - name: Build
+        run: cmake --build --preset ci
+      # GPU and ptxas tests exit 77 without NVIDIA hardware/toolkit and are
+      # reported as skipped; everything else must pass.
+      - name: Test
+        run: ctest --preset ci
+
+  windows-msvc:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure (MSVC /W4 /WX)
+        run: cmake --preset msvc
+      - name: Build
+        run: cmake --build --preset msvc
+      - name: Test
+        run: ctest --preset msvc

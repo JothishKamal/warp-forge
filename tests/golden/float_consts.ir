@@ -1,0 +1,41 @@
+kernel @float_consts(ptr %out) {
+entry:
+  %i = global_id
+  %0 = lt.i32 %i, 1
+  condbr %0, if.then, if.end
+
+if.then:
+  %inf = mul.f32 0x7F61B1E6, 0x41200000
+  %1 = add.f32 0x3DCCCCCD, 0x3E4CCCCD
+  %2 = addr %out, 0
+  store.f32 %1, %2
+  %3 = neg.f32 0x00000000
+  %4 = add.f32 %3, 0x00000000
+  %5 = addr %out, 1
+  store.f32 %4, %5
+  %6 = addr %out, 2
+  store.f32 %inf, %6
+  %7 = mul.f32 0x00000001, 0x3F800000
+  %8 = addr %out, 3
+  store.f32 %7, %8
+  %9 = neg.f32 0x00000000
+  %10 = addr %out, 4
+  store.f32 %9, %10
+  %11 = add.f32 0x4B800000, 0x3F800000
+  %12 = addr %out, 5
+  store.f32 %11, %12
+  %13 = sub.f32 %inf, %inf
+  %14 = addr %out, 6
+  store.f32 %13, %14
+  %15 = mul.f32 0x00000000, %inf
+  %16 = addr %out, 7
+  store.f32 %15, %16
+  %17 = sub.f32 %inf, %inf
+  %18 = neg.f32 %17
+  %19 = addr %out, 8
+  store.f32 %18, %19
+  br if.end
+
+if.end:
+  ret
+}

@@ -1,0 +1,18 @@
+// Conditionally swaps two values. At the join, the phis for `a` and `b` take
+// crossed inputs on one edge and the other edge is critical (split first).
+// No copy cycle arises here (acyclic CFG); cycles are unit-tested in
+// test_codegen.cpp. `i < n - 500` selects which threads swap.
+kernel swap(float* x, float* y, float* out_a, float* out_b, int n) {
+    int i = global_id();
+    if (i < n) {
+        float a = x[i];
+        float b = y[i];
+        if (i < n - 500) {
+            float t = a;
+            a = b;
+            b = t;
+        }
+        out_a[i] = a;
+        out_b[i] = b;
+    }
+}

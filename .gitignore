@@ -4,3 +4,6 @@
 # Build output
 /build/
 /out/
+
+# Plan execution scratch
+/.superpowers/

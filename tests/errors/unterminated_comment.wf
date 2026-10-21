@@ -1,0 +1,4 @@
+kernel k() { }
+/* never closed
+
+// expect-error: 2:1: unterminated block comment

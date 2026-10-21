@@ -1,0 +1,5 @@
+kernel k(float* o, int x) {
+    if (x) { o[0] = 1.0; }
+}
+
+// expect-error: 2:9: if condition must be a comparison

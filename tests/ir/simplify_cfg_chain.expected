@@ -1,0 +1,6 @@
+kernel @k(ptr %o) {
+entry:
+  %v = load.f32 %o
+  store.f32 %v, %o
+  ret
+}

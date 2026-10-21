@@ -1,0 +1,5 @@
+kernel k(int n) {
+    n = n / 2;
+}
+
+// expect-error: 2:11: operator '/' is not supported in WarpForge

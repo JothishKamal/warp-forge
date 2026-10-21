@@ -1,0 +1,5 @@
+kernel k(float* o, int n) {
+    if (n > 2) { o[0] = 1.0; }
+}
+
+// expect-error: 2:11: operator '>' is not supported in WarpForge

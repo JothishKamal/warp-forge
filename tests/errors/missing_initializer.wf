@@ -1,0 +1,5 @@
+kernel k() {
+    int x;
+}
+
+// expect-error: 2:9: must have an initializer

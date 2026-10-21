@@ -1,0 +1,5 @@
+kernel k(float* o) {
+    o[1.0] = 2.0;
+}
+
+// expect-error: 2:7: index must be int, got float

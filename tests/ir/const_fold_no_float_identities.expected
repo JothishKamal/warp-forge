@@ -1,0 +1,12 @@
+kernel @k(ptr %o, i32 %n) {
+entry:
+  %v = load.f32 %o
+  %a = add.f32 %v, 0x00000000
+  %b = mul.f32 %v, 0x00000000
+  %c = sub.f32 %v, %v
+  %p = addr %o, %n
+  %t = add.f32 %a, %b
+  %u = add.f32 %t, %c
+  store.f32 %u, %p
+  ret
+}

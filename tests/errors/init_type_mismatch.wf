@@ -1,0 +1,5 @@
+kernel k() {
+    int x = 2.5;
+}
+
+// expect-error: 2:13: cannot initialize 'x' of type int with a value of type float

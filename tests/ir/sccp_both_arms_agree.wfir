@@ -1,0 +1,22 @@
+; passes: sccp
+; Both arms are executable, but each produces 6 (one via arithmetic), so the
+; phi meets two equal constants and stays a constant.
+kernel @k(ptr %o, i32 %n) {
+entry:
+  %i = global_id
+  %c = lt.i32 %i, %n
+  condbr %c, a, b
+
+a:
+  %x = mul.i32 2, 3
+  br join
+
+b:
+  br join
+
+join:
+  %y = phi.i32 [%x, a], [6, b]
+  %p = addr %o, %y
+  store.f32 0x00000000, %p
+  ret
+}

@@ -1,0 +1,19 @@
+Kernel early_return
+  Param float* out
+  Param int n
+  Block
+    Decl int i
+      GlobalId : int
+    If
+      Binary < : bool
+        Var n : int
+        Binary + : int
+          Var i : int
+          Int 1 : int
+      Block
+        Return
+    Store out
+      Var i : int
+      Binary * : float
+        Float 2.0 : float
+        Float 0.5 : float

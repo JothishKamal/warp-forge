@@ -1,0 +1,8 @@
+// Early exit: threads past the end return before touching memory.
+kernel early_return(float* out, int n) {
+    int i = global_id();
+    if (n < i + 1) {
+        return;
+    }
+    out[i] = 2.0 * 0.5;
+}

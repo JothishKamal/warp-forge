@@ -1,0 +1,33 @@
+kernel @saxpy_const(ptr %x, ptr %y, i32 %n) {
+entry:
+  %i = global_id
+  %scale = mul.f32 0x40000000, 0x3FC00000
+  %0 = mul.i32 %i, 4
+  %unused = add.i32 %0, 7
+  %lanes = mul.i32 32, 8
+  %1 = lt.i32 %lanes, 0
+  condbr %1, if.then, if.end
+
+if.then:
+  %2 = addr %y, %i
+  store.f32 0x00000000, %2
+  br if.end
+
+if.end:
+  %3 = lt.i32 %i, %n
+  condbr %3, if.then.1, if.end.1
+
+if.then.1:
+  %4 = addr %x, %i
+  %5 = load.f32 %4
+  %6 = mul.f32 %scale, %5
+  %7 = addr %y, %i
+  %8 = load.f32 %7
+  %9 = add.f32 %6, %8
+  %10 = addr %y, %i
+  store.f32 %9, %10
+  br if.end.1
+
+if.end.1:
+  ret
+}

@@ -1,0 +1,4 @@
+node_modules/
+out/
+# synthesized by `npm run audio` (scripts/make-audio.py)
+public/soundtrack.wav

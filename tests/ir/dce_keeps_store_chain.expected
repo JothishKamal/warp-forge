@@ -1,0 +1,9 @@
+kernel @k(ptr %o, i32 %n) {
+entry:
+  %i = global_id
+  %p = addr %o, %i
+  %v = load.f32 %p
+  %w = mul.f32 %v, 0x40000000
+  store.f32 %w, %p
+  ret
+}

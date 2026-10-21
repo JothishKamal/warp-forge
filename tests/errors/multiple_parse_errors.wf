@@ -1,0 +1,8 @@
+kernel k(int n) {
+    n = ;
+    n = n / 2;
+    n = 1;
+}
+
+// expect-error: 2:9: expected an expression, found ';'
+// expect-error: 3:11: operator '/' is not supported

@@ -1,0 +1,5 @@
+kernel k(float* o) {
+    o[0] = sqrt(2.0);
+}
+
+// expect-error: 2:12: function calls are not supported

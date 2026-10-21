@@ -1,0 +1,5 @@
+kernel k(int n) {
+    n = 1
+}
+
+// expect-error: 3:1: expected ';' after assignment

@@ -1,0 +1,5 @@
+kernel k(int n) {
+    for (n = 0; n < 1; n = n + 1) { }
+}
+
+// expect-error: 2:5: 'for' is not supported in WarpForge

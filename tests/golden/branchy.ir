@@ -1,0 +1,41 @@
+kernel @branchy(ptr %in, ptr %out, i32 %n) {
+entry:
+  %i = global_id
+  %0 = lt.i32 %i, %n
+  condbr %0, if.then, if.end
+
+if.then:
+  %1 = addr %in, %i
+  %v = load.f32 %1
+  %2 = lt.f32 %v, 0x00000000
+  condbr %2, if.then.1, if.else
+
+if.end:
+  ret
+
+if.then.1:
+  %r = neg.f32 %v
+  br if.end.2
+
+if.else:
+  %3 = lt.f32 %v, 0x3F800000
+  condbr %3, if.then.2, if.else.1
+
+if.then.2:
+  %r.1 = mul.f32 %v, %v
+  br if.end.1
+
+if.else.1:
+  %r.2 = add.f32 %v, 0x3F800000
+  br if.end.1
+
+if.end.1:
+  %r.3 = phi.f32 [%r.1, if.then.2], [%r.2, if.else.1]
+  br if.end.2
+
+if.end.2:
+  %r.4 = phi.f32 [%r, if.then.1], [%r.3, if.end.1]
+  %4 = addr %out, %i
+  store.f32 %r.4, %4
+  br if.end
+}

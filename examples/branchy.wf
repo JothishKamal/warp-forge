@@ -1,0 +1,18 @@
+// A piecewise function with an if / else-if / else chain: each join point
+// merges a different value of `r`, so SSA construction places phis there and
+// the backend has to turn them back into copies.
+kernel branchy(float* in, float* out, int n) {
+    int i = global_id();
+    if (i < n) {
+        float v = in[i];
+        float r = 0.0;
+        if (v < 0.0) {
+            r = -v;
+        } else if (v < 1.0) {
+            r = v * v;
+        } else {
+            r = v + 1.0;
+        }
+        out[i] = r;
+    }
+}

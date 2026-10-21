@@ -1,0 +1,5 @@
+kernel k(int n) {
+    n = 2147483648;
+}
+
+// expect-error: 2:9: integer literal '2147483648' is out of range
