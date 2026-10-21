@@ -8,10 +8,11 @@ verified bit-for-bit on real hardware.
 ![PTX](https://img.shields.io/badge/target-PTX%20sm__75%E2%80%93sm__90-informational)
 ![Tests](https://img.shields.io/badge/tests-177-success)
 
-[![WarpForge in 39 seconds: a kernel is lexed, parsed, lowered to SSA, optimized, emitted as PTX, and checked on a GPU](docs/media/warpforge-demo.gif)](docs/media/warpforge-demo.mp4)
+[![WarpForge teaser: the title drop, the four optimization passes striking the IR, and the PASS stamp after a million GPU threads](docs/media/warpforge-teaser.gif)](docs/media/warpforge-demo.mp4)
 
-<sub>A 39-second tour. Click for the full-resolution 1080p video. Every line of code in it is real compiler
-output, pulled from this repository by [`demo/`](demo).</sub>
+<sub>**[▶ Watch the full 44-second film with sound](docs/media/warpforge-demo.mp4)** (1080p, 60 fps). The GIF above
+is a silent highlight reel. Every line of code on screen is real compiler output: the forge sequence replays
+the IR after each pass of an actual `--print-after-all` run.</sub>
 
 ---
 
@@ -260,14 +261,23 @@ docs/          design notes and references
 
 ## The demo video
 
-The video is a [Remotion](https://www.remotion.dev) project in [`demo/`](demo). Its code is synced from this
-repository's examples and golden outputs, so it can't drift from what the compiler really produces:
+The film is a [Remotion](https://www.remotion.dev) project in [`demo/`](demo), built so it can't drift from the
+compiler or from its own soundtrack:
+
+- **Real content.** `scripts/sync-content.mjs` pulls the source, tokens, CFG, PTX and the IR after each pass
+  from this repository's examples and golden outputs. When a build exists, it runs `warpforge
+  --print-after-all` for the pass snapshots.
+- **Synthesized sound.** `scripts/make-audio.py` (numpy and scipy) generates every sound from scratch, so
+  nothing needs licensing: kick, sub bass, pad, risers, anvil clangs, glitches, key clicks.
+- **One timeline.** [`demo/timeline.json`](demo/timeline.json) holds every cut, hit and cue. The video and the
+  synthesizer both read it, so picture and sound land on the same frame.
 
 ```sh
 cd demo && npm ci
-npm run studio        # live preview
-npm run render        # demo/out/warpforge-demo.mp4 (1080p, 30 fps)
-npm run render:gif    # demo/out/warpforge-demo.gif (the preview above)
+npm run studio        # live preview, with sound
+npm run render        # demo/out/warpforge-demo.mp4 (1080p, 60 fps, AAC audio)
+npm run render:gif    # demo/out/warpforge-teaser.gif (the preview above)
 ```
 
-The rendered files in `docs/media/` are copies of those two outputs.
+`docs/media/warpforge-demo.mp4` is the render re-encoded for the web (`-crf 21 -movflags +faststart`), and
+`docs/media/warpforge-teaser.gif` is a copy of the teaser.
