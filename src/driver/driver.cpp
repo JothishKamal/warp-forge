@@ -110,7 +110,7 @@ int runMiddleAndBackEnd(const Options& o, ir::Module& module, std::ostream& out,
     return kOk;
   }
   std::filesystem::path path = o.output.empty()
-                                   ? std::filesystem::path(o.input).stem().string() + ".ptx"
+                                   ? std::filesystem::path(std::filesystem::path(o.input).stem().string() + ".ptx")
                                    : std::filesystem::path(o.output);
   std::error_code ec;
   if (path.has_parent_path()) std::filesystem::create_directories(path.parent_path(), ec);
