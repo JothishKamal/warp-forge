@@ -1,0 +1,123 @@
+{
+  "_comment": "Single source of truth for picture and sound. Frames at 60 fps; 120 BPM means one beat every 30 frames and one bar every 120. Read by src/ (video) and scripts/make-audio.py (soundtrack).",
+  "fps": 60,
+  "beat": 30,
+  "bar": 120,
+  "total": 2640,
+  "scenes": {
+    "intro": [
+      0,
+      240
+    ],
+    "title": [
+      240,
+      480
+    ],
+    "lex": [
+      480,
+      720
+    ],
+    "ssa": [
+      720,
+      960
+    ],
+    "forge": [
+      960,
+      1440
+    ],
+    "ptx": [
+      1440,
+      1680
+    ],
+    "gpu": [
+      1680,
+      2160
+    ],
+    "stats": [
+      2160,
+      2400
+    ],
+    "outro": [
+      2400,
+      2640
+    ]
+  },
+  "drops": [
+    240,
+    960,
+    1680,
+    2400
+  ],
+  "kickBreaks": [
+    [
+      840,
+      960
+    ],
+    [
+      1560,
+      1680
+    ],
+    [
+      2280,
+      2400
+    ]
+  ],
+  "typing": {
+    "start": 40,
+    "end": 200,
+    "text": "c[i] = a[i] + b[i];"
+  },
+  "tokens": {
+    "start": 520,
+    "end": 610
+  },
+  "astSnap": 630,
+  "whooshes": [
+    480,
+    720,
+    1440,
+    2160
+  ],
+  "cfgDraw": [
+    740,
+    830
+  ],
+  "phiPop": 860,
+  "hammers": [
+    1020,
+    1110,
+    1200,
+    1290
+  ],
+  "collapse": 1380,
+  "glitches": [
+    1440,
+    1470,
+    1590
+  ],
+  "ptxFreeze": 1560,
+  "gridWave": [
+    1700,
+    1900
+  ],
+  "passStamp": 1920,
+  "terminal": [
+    1980,
+    2010,
+    2040,
+    2070
+  ],
+  "statHits": [
+    2160,
+    2190,
+    2220,
+    2250,
+    2280,
+    2310
+  ],
+  "implode": [
+    2340,
+    2400
+  ],
+  "finalSparkle": 2460
+}
