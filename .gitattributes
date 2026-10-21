@@ -1,3 +1,6 @@
 # Golden files are compared byte-for-byte: keep LF everywhere
 * text=auto eol=lf
 *.pdf binary
+*.gif binary
+*.mp4 binary
+*.png binary
