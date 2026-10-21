@@ -133,6 +133,11 @@ int run(const Options& o, std::ostream& out, std::ostream& err) {
   std::unique_ptr<ir::Module> module;
   int status = o.inputIr ? parseIRInput(o, text, module, err) : runFrontend(o, std::move(text), module, out, err);
   if (status != kOk || !module) return status;
+  if (module->functions.empty()) {
+    // Otherwise we'd "succeed" with a header-only PTX file.
+    err << o.input << ": error: no kernels in input\n";
+    return kCompileError;
+  }
   return runMiddleAndBackEnd(o, *module, out, err);
 }
 

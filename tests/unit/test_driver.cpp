@@ -1,6 +1,8 @@
 #include "driver/driver.hpp"
 
 #include <gtest/gtest.h>
+#include <filesystem>
+#include <fstream>
 #include <sstream>
 
 using namespace wf::driver;
@@ -117,4 +119,27 @@ TEST(Options, DroppedTargetsRejected) {
   Options o;
   std::string e;
   EXPECT_FALSE(parse({"x.wf", "--sm=sm_70"}, o, e)); // not assemblable with CUDA 13 ptxas
+}
+
+namespace {
+
+std::string writeTemp(const std::string& name, const std::string& text) {
+  auto path = std::filesystem::temp_directory_path() / name;
+  std::ofstream(path, std::ios::binary) << text;
+  return path.string();
+}
+
+} // namespace
+
+TEST(Driver, InputWithoutKernelsIsAnError) {
+  for (const char* name : {"warpforge_empty_test.wf", "warpforge_empty_test.wfir"}) {
+    Options o;
+    o.inputIr = std::string(name).ends_with(".wfir");
+    o.input = writeTemp(name, o.inputIr ? "; nothing here\n" : "// nothing here\n");
+    o.output = "-";
+    std::ostringstream out, err;
+    EXPECT_EQ(run(o, out, err), kCompileError) << name;
+    EXPECT_NE(err.str().find("error: no kernels in input"), std::string::npos) << err.str();
+    EXPECT_EQ(out.str(), "") << name;
+  }
 }
