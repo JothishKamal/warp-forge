@@ -7,7 +7,14 @@
     "strict": true,
     "noUnusedLocals": true,
     "skipLibCheck": true,
-    "lib": ["DOM", "ES2020"]
+    "lib": [
+      "DOM",
+      "ES2020"
+    ],
+    "resolveJsonModule": true
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "timeline.json"
+  ]
 }

@@ -50,7 +50,7 @@ export const easeInOut = Easing.bezier(0.65, 0, 0.35, 1);
 export const tween = (frame: number, from: number, to: number, out: [number, number], easing = easeOut) =>
   interpolate(frame, [from, to], out, { easing, extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
-export const FPS = 30;
+export const FPS = 60;
 export const WIDTH = 1920;
 export const HEIGHT = 1080;
 export const MARGIN = 120; // left edge of all content

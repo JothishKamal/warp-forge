@@ -6,11 +6,13 @@
   "type": "module",
   "scripts": {
     "sync": "node scripts/sync-content.mjs",
-    "studio": "npm run sync && remotion studio",
-    "render": "npm run sync && remotion render WarpForgeDemo out/warpforge-demo.mp4 --codec=h264 --crf=16 --pixel-format=yuv420p",
-    "render:gif": "npm run sync && remotion render WarpForgeDemo out/warpforge-demo.gif --codec=gif --every-nth-frame=2 --scale=0.5",
-    "still": "npm run sync && remotion still WarpForgeDemo",
-    "typecheck": "tsc --noEmit"
+    "studio": "npm run prepare-assets && remotion studio",
+    "render": "npm run prepare-assets && remotion render WarpForgeDemo out/warpforge-demo.mp4 --codec=h264 --crf=16 --pixel-format=yuv420p --audio-codec=aac --audio-bitrate=256k",
+    "render:gif": "npm run prepare-assets && remotion render WarpForgeTeaser out/teaser.mp4 --codec=h264 --crf=14 --muted && node scripts/make-gif.mjs",
+    "still": "npm run prepare-assets && remotion still WarpForgeDemo",
+    "typecheck": "tsc --noEmit",
+    "audio": "python scripts/make-audio.py",
+    "prepare-assets": "npm run sync && npm run audio"
   },
   "dependencies": {
     "@remotion/cli": "4.0.537",
