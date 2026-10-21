@@ -14,7 +14,9 @@ include(cmake/Warnings.cmake)
 # MinGW: link the C++ runtime statically so the executables don't pick up a
 # different libstdc++-6.dll from PATH (Git for Windows ships an older one).
 if(MINGW)
-  add_link_options(-static)
+  # -pthread: the static libstdc++ needs winpthread, which clang's driver
+  # (unlike gcc's) doesn't add by itself under -static.
+  add_link_options(-static -pthread)
 endif()
 
 # ---------------------------------------------------------------------------

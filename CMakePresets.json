@@ -27,6 +27,14 @@
       "cacheVariables": { "CMAKE_CXX_COMPILER": "g++", "CMAKE_BUILD_TYPE": "Release" }
     },
     {
+      "name": "msvc",
+      "displayName": "MSVC (Visual Studio 2022, x64)",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": { "WARPFORGE_WERROR": "ON" }
+    },
+    {
       "name": "ci",
       "inherits": "base",
       "displayName": "CI (warnings as errors)",
@@ -37,11 +45,14 @@
     { "name": "mingw-gcc", "configurePreset": "mingw-gcc" },
     { "name": "mingw-clang", "configurePreset": "mingw-clang" },
     { "name": "release", "configurePreset": "release" },
+    { "name": "msvc", "configurePreset": "msvc", "configuration": "Debug" },
     { "name": "ci", "configurePreset": "ci" }
   ],
   "testPresets": [
     { "name": "mingw-gcc", "configurePreset": "mingw-gcc", "output": { "outputOnFailure": true } },
+    { "name": "mingw-clang", "configurePreset": "mingw-clang", "output": { "outputOnFailure": true } },
     { "name": "release", "configurePreset": "release", "output": { "outputOnFailure": true } },
+    { "name": "msvc", "configurePreset": "msvc", "configuration": "Debug", "output": { "outputOnFailure": true } },
     { "name": "ci", "configurePreset": "ci", "output": { "outputOnFailure": true } }
   ]
 }
