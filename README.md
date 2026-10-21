@@ -17,7 +17,7 @@ bit-for-bit against a CPU reference.
 | **SSA construction** | Braun et al. 2013 (*Simple and Efficient Construction of SSA Form*): phis placed on the fly, trivial phis removed. |
 | **Passes** | Constant folding, **SCCP** (Wegman–Zadeck), mark-sweep DCE, CFG simplification. Pass manager with `--print-after-all` and the verifier between passes. |
 | **Backend** | Critical-edge splitting and parallel-copy sequentialization (lost-copy and swap problems), typed virtual registers, `.rn` float ops, nvcc-style labels. |
-| **Validation** | 167 CTest tests: unit, golden files, diagnostics, hand-written IR pass tests, O0-vs-O1 differential tests on a reference interpreter (examples + 500 random programs), `ptxas`, GPU runs through the CUDA Driver API, and a GPU fuzz that uses the hardware as the oracle (300 runs). |
+| **Validation** | 177 CTest tests: unit, golden files, diagnostics, hand-written IR pass tests, O0-vs-O1 differential tests on a reference interpreter (examples + 500 random programs), `ptxas`, GPU runs through the CUDA Driver API, and a GPU fuzz that uses the hardware as the oracle (300 runs). |
 
 ## Example
 
@@ -121,13 +121,19 @@ Full outputs for every example are in [`tests/golden/`](tests/golden).
 
 ## Build and run
 
-Requirements: CMake ≥ 3.20, Ninja, a C++20 compiler (tested with MinGW-w64 GCC 13.2 on Windows 11), and
-Python 3 for the golden-file suites. A GPU and the CUDA Toolkit are optional (see [Validation](#validation)).
+Requirements: CMake ≥ 3.20, Python 3 for the golden-file suites, and a C++20 compiler. Each of these builds
+warning-clean with warnings as errors and passes the whole suite, including byte-identical golden output:
+
+- GCC 13: MinGW-w64 on Windows 11, and Ubuntu 24.04 in CI
+- Clang 17 (MinGW)
+- MSVC 2022 (`/W4 /WX`)
+
+A GPU and the CUDA Toolkit are optional (see [Validation](#validation)).
 
 ```sh
-cmake --preset mingw-gcc          # or: cmake -B build -G Ninja
-cmake --build build/mingw-gcc
-ctest --test-dir build/mingw-gcc  # 167 tests; GPU/ptxas tests skip if unavailable
+cmake --preset mingw-gcc          # or: msvc, mingw-clang, ci (Linux/GCC, -Werror)
+cmake --build build/mingw-gcc     # msvc: cmake --build --preset msvc
+ctest --test-dir build/mingw-gcc  # 177 tests; GPU/ptxas tests skip if unavailable
 ```
 
 ```sh
@@ -205,7 +211,9 @@ caveats: [docs/benchmarks.md](docs/benchmarks.md).
 
 - [docs/language.md](docs/language.md): grammar, typing rules, semantics and the full list of diagnostics
 - [docs/ir.md](docs/ir.md): IR structure, instruction set, text format and verifier
-- [docs/passes.md](docs/passes.md): each pass with its algorithm and before/after IR
+- [docs/passes.md](docs/passes.md): the pass manager, what "safe" means, and how passes are tested. One page
+  per pass: [const-fold](docs/passes/const-fold.md), [sccp](docs/passes/sccp.md), [dce](docs/passes/dce.md),
+  [simplify-cfg](docs/passes/simplify-cfg.md)
 - [docs/codegen.md](docs/codegen.md): IR→PTX mapping, out-of-SSA, layout, and why there is no register allocator
 - [docs/validation.md](docs/validation.md): how correctness is established, and the test inventory
 - [docs/benchmarks.md](docs/benchmarks.md): methodology and results

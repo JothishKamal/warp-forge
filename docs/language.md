@@ -38,6 +38,8 @@ Lexical rules:
 
 - `INT_LIT` is decimal digits with a value ≤ 2147483647. As in C, `-2147483648` can't be written directly.
 - `FLOAT_LIT` is `1.5`, `1.5f`, `2e3`, `1.0e-2f`, …, always binary32, rounded to nearest from the decimal text.
+  A literal too large for binary32 (above ~3.4028235e38) is an error rather than a silent `inf`. Tiny literals
+  that round to a subnormal or to zero are allowed.
 - Keywords: `kernel int float if else return global_id`.
 - Comments: `// …` and `/* … */`.
 
@@ -99,6 +101,8 @@ bytes. The parser recovers at `;` and `}`, so several errors are reported per ru
 | `sqrt(x)` | `function calls are not supported in WarpForge (only global_id())` |
 | `int x;` | `declaration of 'x' must have an initializer` |
 | `2147483648` | `integer literal '2147483648' is out of range for int` |
+| `1e39` | `float literal '1e39' is out of range for float (max ~3.4028235e38)` |
+| File with no kernels | `error: no kernels in input` |
 | Syntax | `expected ';' after assignment, found '}'`, `expected an expression, found ';'` |
 
 Every row is covered by a file in [`tests/errors/`](../tests/errors).

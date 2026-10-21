@@ -126,7 +126,7 @@ at -O0 the GPU computes them, at -O1 the compiler folded them, and both match th
 | | |
 |---|---|
 | OS | Windows 11 Pro 10.0.26300 |
-| Host compiler | MinGW-w64 GCC 13.2.0 (x86_64-ucrt-posix-seh) |
+| Host compilers | MinGW-w64 GCC 13.2.0 (x86_64-ucrt-posix-seh); also MSVC 2022 and MinGW Clang 17 locally, and GCC 13.3 on Ubuntu 24.04 (CI, verified in a container) |
 | Build | CMake 3.27.8, Ninja, Debug |
 | GPU | NVIDIA GeForce RTX 3060 Laptop GPU (sm_86), driver 610.62 (CUDA 13.3 driver API) |
 | Toolkit | CUDA 13.3 (`ptxas` cuda_13.3.r13.3/compiler.38244171_0) |
