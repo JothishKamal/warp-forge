@@ -1,44 +1,97 @@
 # WarpForge
 
-A small optimizing compiler, written in C++20, from a restricted C-like kernel language to **NVIDIA PTX**.
-It has an SSA IR with a verifier, textbook dataflow optimizations, out-of-SSA translation, and a PTX backend.
-Its output is validated with NVIDIA's own tools: `ptxas`, the driver JIT, and execution on a real GPU, checked
-bit-for-bit against a CPU reference.
+An optimizing compiler, written in C++20, from a small C-like GPU kernel language to NVIDIA PTX. Its output is
+verified bit-for-bit on real hardware.
 
-```
- .wf ─► lexer ─► parser ─► sema ─► IRGen (Braun SSA) ─► verifier ⇄ pass manager ─► out-of-SSA ─► PTX
-                                                          const-fold · sccp · dce · simplify-cfg
-```
+[![CI](https://github.com/JothishKamal/warp-forge/actions/workflows/ci.yml/badge.svg)](https://github.com/JothishKamal/warp-forge/actions/workflows/ci.yml)
+![C++20](https://img.shields.io/badge/C%2B%2B-20-informational)
+![PTX](https://img.shields.io/badge/target-PTX%20sm__75%E2%80%93sm__90-informational)
+![Tests](https://img.shields.io/badge/tests-177-success)
 
-| | |
-|---|---|
-| **Front end** | Hand-written lexer and recursive-descent parser. Type checker with `file:line:col` + caret diagnostics. Multiple errors per run. |
-| **IR** | SSA with basic blocks, use lists and typed values. Stable text dump. Verifier checks types, CFG, phis and def-dominates-use (Cooper–Harvey–Kennedy dominators). |
-| **SSA construction** | Braun et al. 2013 (*Simple and Efficient Construction of SSA Form*): phis placed on the fly, trivial phis removed. |
-| **Passes** | Constant folding, **SCCP** (Wegman–Zadeck), mark-sweep DCE, CFG simplification. Pass manager with `--print-after-all` and the verifier between passes. |
-| **Backend** | Critical-edge splitting and parallel-copy sequentialization (lost-copy and swap problems), typed virtual registers, `.rn` float ops, nvcc-style labels. |
-| **Validation** | 177 CTest tests: unit, golden files, diagnostics, hand-written IR pass tests, O0-vs-O1 differential tests on a reference interpreter (examples + 500 random programs), `ptxas`, GPU runs through the CUDA Driver API, and a GPU fuzz that uses the hardware as the oracle (300 runs). |
+[![WarpForge in 39 seconds: a kernel is lexed, parsed, lowered to SSA, optimized, emitted as PTX, and checked on a GPU](docs/media/warpforge-demo.gif)](docs/media/warpforge-demo.mp4)
 
-## Example
+<sub>A 39-second tour. Click for the full-resolution 1080p video. Every line of code in it is real compiler
+output, pulled from this repository by [`demo/`](demo).</sub>
 
-`examples/saxpy_const.wf`:
+---
+
+WarpForge takes a kernel like this:
 
 ```c
-kernel saxpy_const(float* x, float* y, int n) {
+kernel vector_add(float* a, float* b, float* c, int n) {
     int i = global_id();
-    float scale = 2.0 * 1.5;      // const-fold  -> 3.0
-    int unused = i * 4 + 7;       // dce         -> gone
-    int lanes = 32 * 8;           // const-fold  -> 256
-    if (lanes < 0) {              // sccp        -> branch never taken, block deleted
-        y[i] = 0.0;
-    }
     if (i < n) {
-        y[i] = scale * x[i] + y[i];
+        c[i] = a[i] + b[i];
     }
 }
 ```
 
-<table><tr><th><code>--dump-ir -O0</code></th><th><code>--dump-ir -O1</code></th></tr><tr><td>
+It then lexes, parses and type-checks the kernel, lowers it to SSA, optimizes it with classic dataflow passes,
+translates it out of SSA, and emits PTX that `ptxas` assembles and an RTX 3060 runs. The result is
+bit-identical to a CPU reference.
+
+The language is deliberately narrow: no loops, no calls, three types. That leaves room to get the compiler
+itself right, with a verifier between every stage, semantics pinned down to the bit, and tests at every level
+up to the GPU.
+
+## Highlights
+
+- **Real SSA.** Constructed directly with Braun et al.'s algorithm: phis are placed on demand and trivial
+  phis removed. A verifier checks types, the CFG, phis and def-dominates-use (Cooper–Harvey–Kennedy
+  dominators) after every pass.
+- **Textbook optimizations.** Constant folding, sparse conditional constant propagation (Wegman–Zadeck),
+  mark-sweep DCE and CFG simplification, run to a fixpoint. `--print-after-all` shows each step.
+- **Correct out-of-SSA.** Critical-edge splitting and parallel-copy sequentialization handle both the
+  lost-copy and the swap problem.
+- **GPU-exact semantics.** `.rn` float ops stop `ptxas` contracting to FMA. NaNs are canonicalized as PTX
+  does. Float negation is an exact sign-bit `xor`, because PTX leaves `neg.f32` of a NaN unspecified. Folding
+  at -O1 and computing on the GPU at -O0 give the same bits.
+- **Validated against NVIDIA's tools.** `ptxas` assembles every output, the CUDA driver's JIT loads it, and
+  the GPU's results match the reference interpreter bit-for-bit, including a 300-run random-program fuzz.
+- **Helpful diagnostics.** GCC-style `file:line:col` errors with carets, several per run, and specific
+  messages for unsupported C (`'while' is not supported in WarpForge`).
+
+## Quick start
+
+You need CMake ≥ 3.20, Python 3 and a C++20 compiler. GCC 13, Clang 17 and MSVC 2022 are all tested with
+warnings as errors. A GPU is optional.
+
+```sh
+git clone https://github.com/JothishKamal/warp-forge.git && cd warp-forge
+cmake --preset mingw-gcc                 # or: msvc, mingw-clang, ci (Linux)
+cmake --build build/mingw-gcc
+ctest --test-dir build/mingw-gcc         # GPU and ptxas tests skip without NVIDIA hardware
+```
+
+Compile a kernel, and look inside:
+
+```sh
+warpforge examples/vector_add.wf -o vector_add.ptx           # PTX for sm_86
+warpforge examples/saxpy_const.wf --dump-ir --no-opt         # SSA straight from the front end
+warpforge examples/saxpy_const.wf --print-after-all --dump-ir   # watch each pass (log on stderr)
+```
+
+Run it on an NVIDIA GPU. Only the display driver is needed, not the CUDA Toolkit:
+
+```sh
+wf-run --source examples/vector_add.wf --ptx vector_add.ptx --kernel vector_add --check
+# device: NVIDIA GeForce RTX 3060 Laptop GPU (sm_86), CUDA driver API 13.3
+# PASS vector_add n=1048576 threads=1048576 (bit-exact vs IR interpreter and C++ loop)
+```
+
+## What the optimizer does
+
+[`examples/saxpy_const.wf`](examples/saxpy_const.wf) hides a simple `y = 3x + y` behind constant arithmetic
+and dead code:
+
+```c
+float scale = 2.0 * 1.5;   // const-fold: 3.0
+int unused = i * 4 + 7;    // dce: deleted
+int lanes = 32 * 8;        // const-fold: 256
+if (lanes < 0) { ... }     // sccp: never taken, so the block is deleted
+```
+
+<table><tr><th><code>--dump-ir -O0</code> (29 lines)</th><th><code>--dump-ir -O1</code> (18 lines)</th></tr><tr><td>
 
 ```llvm
 entry:
@@ -56,9 +109,6 @@ if.then:
 if.end:
   %3 = lt.i32 %i, %n
   condbr %3, if.then.1, if.end.1
-if.then.1:
-  ...
-  %6 = mul.f32 %scale, %5
   ...
 ```
 
@@ -80,30 +130,15 @@ if.then.1:
   %7 = addr %y, %i
   store.f32 %6, %7
   br if.end.1
-
-if.end.1:
-  ret
+  ...
 ```
 
 </td></tr></table>
 
-The generated PTX for `examples/vector_add.wf` (abridged; the full file is [`tests/golden/vector_add.ptx`](tests/golden/vector_add.ptx)):
+The PTX it emits for `vector_add` (abridged; full output in [`tests/golden/`](tests/golden)):
 
 ```ptx
-.version 7.1
-.target sm_86
-.address_size 64
-
-.visible .entry vector_add(
-	.param .u64 vector_add_param_0, ..., .param .u32 vector_add_param_3)
-{
-	ld.param.u64 	%rd1, [vector_add_param_0];
-	cvta.to.global.u64 	%rd2, %rd1;
-	...
-	mov.u32 	%r2, %ctaid.x;
-	mov.u32 	%r3, %ntid.x;
-	mov.u32 	%r4, %tid.x;
-	mad.lo.s32 	%r5, %r2, %r3, %r4;      // global_id()
+	mad.lo.s32 	%r5, %r2, %r3, %r4;      // global_id(): ctaid.x * ntid.x + tid.x
 	setp.lt.s32 	%p1, %r5, %r1;           // i < n
 	@!%p1 bra 	$L__BB0_2;
 	mul.wide.s32 	%rd7, %r5, 4;
@@ -114,133 +149,125 @@ The generated PTX for `examples/vector_add.wf` (abridged; the full file is [`tes
 	st.global.f32 	[%rd12], %f3;
 $L__BB0_2:
 	ret;
-}
 ```
 
-Full outputs for every example are in [`tests/golden/`](tests/golden).
+## How it works
 
-## Build and run
-
-Requirements: CMake ≥ 3.20, Python 3 for the golden-file suites, and a C++20 compiler. Each of these builds
-warning-clean with warnings as errors and passes the whole suite, including byte-identical golden output:
-
-- GCC 13: MinGW-w64 on Windows 11, and Ubuntu 24.04 in CI
-- Clang 17 (MinGW)
-- MSVC 2022 (`/W4 /WX`)
-
-A GPU and the CUDA Toolkit are optional (see [Validation](#validation)).
-
-```sh
-cmake --preset mingw-gcc          # or: msvc, mingw-clang, ci (Linux/GCC, -Werror)
-cmake --build build/mingw-gcc     # msvc: cmake --build --preset msvc
-ctest --test-dir build/mingw-gcc  # 177 tests; GPU/ptxas tests skip if unavailable
+```
+ .wf ─► lexer ─► parser ─► sema ─► IRGen (SSA) ─► verifier ⇄ passes ─► out of SSA ─► PTX
+                                                   const-fold, sccp, dce, simplify-cfg
 ```
 
-```sh
-warpforge examples/vector_add.wf --emit-ptx out/vector_add.ptx    # compile
-warpforge examples/vector_add.wf --dump-ir --opt                  # IR after -O1
-warpforge examples/vector_add.wf --dump-ir --no-opt               # IR straight from IRGen
-warpforge examples/saxpy_const.wf --print-after-all --dump-ir     # watch each pass (stderr)
-warpforge examples/branchy.wf --passes=sccp,dce --dump-ir         # custom pipeline
-warpforge examples/branchy.wf --dump-tokens | --dump-ast          # front-end dumps
-wf-run --source examples/vector_add.wf --ptx out/vector_add.ptx --kernel vector_add --check
-```
+| Stage | What it does | Read more |
+|---|---|---|
+| Front end | Hand-written lexer and recursive-descent parser with error recovery; type checker | [language.md](docs/language.md) |
+| IR | SSA with basic blocks, use lists and typed values; stable text form that also parses back (`.wfir`) | [ir.md](docs/ir.md) |
+| Passes | Four passes and a pass manager that verifies after each one | [passes.md](docs/passes.md) |
+| Backend | Out-of-SSA, typed virtual registers (no register allocation: `ptxas` owns that), then-first block layout | [codegen.md](docs/codegen.md) |
+| `wf-run` | Loads `nvcuda.dll` / `libcuda.so` at run time, JIT-compiles PTX through `cuModuleLoadDataEx`, and compares GPU output with the interpreter | [validation.md](docs/validation.md) |
 
-Diagnostics follow GCC/Clang style, and several errors are reported per run:
+## Correctness
+
+| Check | What it proves |
+|---|---|
+| Unit tests (GoogleTest) | Every component in isolation: lexer, parser, sema, IR, verifier, each pass, out-of-SSA, emitter |
+| Golden files | Tokens, AST, IR and PTX for every example are byte-identical on GCC, Clang and MSVC, and on Windows and Linux |
+| Diagnostics | 28 invalid programs, each with the exact `line:col` and message expected |
+| Single-pass IR tests | Hand-written `.wfir` in, expected IR out, like LLVM's `opt` tests |
+| Differential | -O0 and -O1 write bit-identical memory on the interpreter: every example plus 500 random programs |
+| `ptxas` | Every golden PTX file assembles with `ptxas -arch=sm_86` (CUDA 13.3) |
+| GPU | Every example at -O0 and -O1, plus 150 random programs at both levels, matches the interpreter bit-for-bit on an RTX 3060 |
+
+CI runs the CPU suite on Linux (GCC) and Windows (MSVC). The GPU and `ptxas` checks skip cleanly without
+NVIDIA hardware.
+
+## Performance
+
+RTX 3060 Laptop GPU, n = 2²⁴, 200 warmup and 200 timed launches. Every variant passed the bit-exact check
+first:
+
+| Kernel | WarpForge -O0 | WarpForge -O1 | nvcc `-O3 -fmad=false` | PTX instructions (O0 / O1 / nvcc) | SASS |
+|---|---|---|---|---|---|
+| `vector_add` | 0.665 ms | 0.665 ms | 0.665 ms | 24 / 24 / 22 | 16 each |
+| `saxpy_const` | 0.670 ms | 0.676 ms | 0.670 ms | 35 / 23 / 20 | 16 each, identical |
+
+WarpForge's PTX runs at nvcc's speed, about 303 GB/s, close to the card's memory bandwidth. Because `ptxas`
+re-optimizes its input, -O1 shrinks the PTX rather than the kernel time: for `saxpy_const`, all three variants
+compile to the same machine code. Method and caveats: [benchmarks.md](docs/benchmarks.md).
+
+## The language
+
+`int` (32-bit, wrapping), `float` (IEEE binary32) and `float*` (global memory, kernel parameters only).
+Declarations with initializers, assignments, indexed loads and stores, `if` / `else if` / `else`, and
+`return;`. Expressions use `+ - *`, unary `-`, `<` (in conditions), parentheses and `global_id()`. There are
+no loops, calls or implicit conversions. The grammar and every diagnostic are in
+[language.md](docs/language.md).
 
 ```
 examples/bad.wf:2:20: error: invalid operands to '+': float and int
     float x = o[0] + n;
                    ^
-examples/bad.wf:3:12: error: undefined variable 'undefined_thing'
-    o[1] = undefined_thing;
-           ^
-2 errors generated.
 ```
 
-## The language
+## Command line
 
-`int` (32-bit, wrapping), `float` (IEEE binary32), and `float*` (global memory, kernel parameters only).
-Statements are declarations with initializers, assignments, indexed loads and stores, `if`/`else if`/`else`,
-and `return;`. Expressions use `+ - *`, unary `-`, `<` (only in `if` conditions), parentheses, and
-`global_id()`. There are no implicit conversions and no loops. Anything else is rejected with a specific
-message such as `'while' is not supported in WarpForge`. Full grammar and semantics:
-[docs/language.md](docs/language.md).
-
-## Validation
-
-| Check | What it proves | Status on the dev machine |
-|---|---|---|
-| Unit tests (GoogleTest) | Each component in isolation: lexer, parser, sema, IR, verifier, each pass, out-of-SSA, emitter | ✅ |
-| Golden files | Tokens, AST, IR at -O0/-O1, and PTX at -O0/-O1 for every example are byte-stable and deterministic | ✅ |
-| Diagnostics suite | 27 files of invalid programs, each with exact `line:col` and message | ✅ |
-| Differential O0 vs O1 | Optimized and unoptimized IR give bit-identical memory on the reference interpreter | ✅ |
-| `ptxas -arch=sm_86` | Every golden PTX file assembles with NVIDIA's standalone assembler (CUDA 13.3) | ✅ 12/12 |
-| GPU execution | Every example at -O0 and -O1 is JIT-compiled by the driver, run on an RTX 3060, and matches the CPU reference **bit-for-bit** | ✅ 12/12 |
-
-The GPU path uses no CUDA Toolkit. `wf-run` loads `nvcuda.dll` at run time and hands the PTX to the driver's
-JIT compiler through `cuModuleLoadDataEx`, capturing its error log. That is the Driver Compiler Interface a
-CUDA application uses when it ships PTX. Details: [docs/validation.md](docs/validation.md).
-
-Bit-exactness is by design, not luck. The constant folder, the interpreter and the GPU all perform each
-`f32` operation as one IEEE round-to-nearest operation. The emitter writes `add.rn`/`mul.rn` so that `ptxas`
-cannot fuse a multiply and an add into an FMA, and the host build uses `-ffp-contract=off`.
-NaN results are canonicalized to PTX's `0x7FFFFFFF`. Float negation is emitted as an exact sign-bit
-`xor.b32`, because PTX leaves `neg.f32` of a NaN unspecified, and on sm_86 the hardware and `ptxas`'s folder
-disagree. Both rules came out of the final review, which found them by fuzzing against the GPU.
-`examples/float_consts.wf` covers −0.0, ∞, subnormals, rounding and NaN: the GPU's results at -O0 match the
-compile-time folds at -O1 ([codegen.md](docs/codegen.md)).
-
-## Benchmarks
-
-RTX 3060 Laptop, CUDA 13.3, 200 warmup + 200 timed launches, n = 2²⁴. Every variant passed the
-bit-exact GPU check before it was timed. nvcc's PTX was built with `-O3 -fmad=false`, which gives it
-WarpForge's no-FMA float semantics so both can pass the same bit-exact check:
-
-| kernel | WarpForge -O0 | WarpForge -O1 | nvcc `-O3 -fmad=false` | PTX instr (O0 / O1 / nvcc) | SASS instr |
-|---|---|---|---|---|---|
-| `vector_add` | 0.665 ms | 0.665 ms | 0.665 ms | 24 / 24 / 22 | 16 / 16 / 16 |
-| `saxpy_const` | 0.670 ms | 0.676 ms | 0.670 ms | 35 / 23 / 20 | 16 / 16 / 16, **identical SASS** |
-
-WarpForge's PTX runs at nvcc's speed: about 303 GB/s, roughly 90% of the GPU's DRAM peak. `ptxas`
-re-optimizes whatever it receives, so -O1 shrinks the PTX but compiles to the same machine code as -O0.
-For `saxpy_const`, all three variants produce byte-identical SASS. Methodology, environment and the honest
-caveats: [docs/benchmarks.md](docs/benchmarks.md).
-
-## Documentation
-
-- [docs/language.md](docs/language.md): grammar, typing rules, semantics and the full list of diagnostics
-- [docs/ir.md](docs/ir.md): IR structure, instruction set, text format and verifier
-- [docs/passes.md](docs/passes.md): the pass manager, what "safe" means, and how passes are tested. One page
-  per pass: [const-fold](docs/passes/const-fold.md), [sccp](docs/passes/sccp.md), [dce](docs/passes/dce.md),
-  [simplify-cfg](docs/passes/simplify-cfg.md)
-- [docs/codegen.md](docs/codegen.md): IR→PTX mapping, out-of-SSA, layout, and why there is no register allocator
-- [docs/validation.md](docs/validation.md): how correctness is established, and the test inventory
-- [docs/benchmarks.md](docs/benchmarks.md): methodology and results
-- [docs/interview-guide.md](docs/interview-guide.md): likely questions, with answers tied to the code
-- [docs/superpowers/specs/2026-10-20-warpforge-design.md](docs/superpowers/specs/2026-10-20-warpforge-design.md): the design document
+| Option | |
+|---|---|
+| `-o`, `--emit-ptx <file>` | Write PTX (`-` for stdout) |
+| `--dump-tokens`, `--dump-ast`, `--dump-ir` | Print a stage's output |
+| `-O0`, `-O1` (`--no-opt`, `--opt`) | Optimization level (default `-O1`) |
+| `--passes=a,b,...` | Run exactly these passes |
+| `--print-before-all`, `--print-after-all` | Trace the pipeline on stderr |
+| `--input-ir` | Read textual IR (implied by `.wfir`) |
+| `--sm=<arch>`, `--ptx-version=<x.y>` | Target `sm_75`–`sm_90` (default `sm_86`) |
+| `--check` | Stop after type checking |
 
 ## Limitations
 
-These are deliberate, following the PRD's "narrow but correct" principle:
+These are deliberate choices, made so the compiler stays narrow and correct:
 
-- No loops, function calls, division, `>`/`==`, casts, or pointer arithmetic. 1-D `global_id()` only.
-- No register allocation, instruction scheduling, CSE or address-mode folding: `ptxas` does all of these.
-  The PTX recomputes `i * 4` for each access; `ptxas` removes the duplicates.
+- No loops, function calls, division, `>`/`==`, casts or pointer arithmetic; 1-D `global_id()` only.
+- No register allocation, scheduling or CSE. Those belong to `ptxas`, which already does them.
 - No shared memory, barriers or atomics, so kernels must be race-free. The interpreter detects races and
   out-of-bounds accesses.
-- Targets `sm_75` to `sm_90`, each verified with `ptxas` 13.3. `sm_86` (PTX ISA 7.1) is the default. Other
-  targets are rejected rather than guessed.
 
-## Layout
+## Repository layout
 
 ```
 src/frontend   lexer, parser, AST, sema, diagnostics
-src/ir         IR core, builder, printer, verifier, dominators, IRGen, constant evaluator, interpreter
-src/passes     pass manager, const-fold, sccp, dce, simplify-cfg
-src/codegen    out-of-SSA, PTX emitter
+src/ir         IR, printer and parser, verifier, dominators, IRGen, evaluator, interpreter
+src/passes     pass manager and the four passes
+src/codegen    out-of-SSA and the PTX emitter
 src/driver     command-line driver
 tools/         warpforge (CLI) and wf-run (GPU harness)
-tests/         unit tests, golden files, diagnostic files, runners
-examples/      demo kernels
+tests/         unit, golden, diagnostic, IR and GPU-fuzz suites
+examples/      sample kernels
+bench/         benchmark harness and nvcc baselines
+demo/          the Remotion source for the video above
+docs/          design notes and references
 ```
+
+## Documentation
+
+- [Language](docs/language.md): grammar, semantics and diagnostics
+- [IR](docs/ir.md): structure, text format and verifier
+- [Passes](docs/passes.md), with a page each for [const-fold](docs/passes/const-fold.md),
+  [sccp](docs/passes/sccp.md), [dce](docs/passes/dce.md) and [simplify-cfg](docs/passes/simplify-cfg.md)
+- [Code generation](docs/codegen.md): IR→PTX mapping, out-of-SSA, NaN and negation semantics
+- [Validation](docs/validation.md) and [benchmarks](docs/benchmarks.md)
+- [Design Q&A](docs/interview-guide.md): why each decision was made
+- [Design document](docs/superpowers/specs/2026-10-20-warpforge-design.md)
+
+## The demo video
+
+The video is a [Remotion](https://www.remotion.dev) project in [`demo/`](demo). Its code is synced from this
+repository's examples and golden outputs, so it can't drift from what the compiler really produces:
+
+```sh
+cd demo && npm ci
+npm run studio        # live preview
+npm run render        # demo/out/warpforge-demo.mp4 (1080p, 30 fps)
+npm run render:gif    # demo/out/warpforge-demo.gif (the preview above)
+```
+
+The rendered files in `docs/media/` are copies of those two outputs.
